@@ -1,144 +1,136 @@
-
-
 <!DOCTYPE html>
 
 <html lang="en">
 
 <head>
 
-<meta charset="UTF-8">
+  <meta charset="UTF-8">
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>ARNO Fancam Views Tracker</title>
+  <title>Arno Streaming Team</title>
 
-<style>
+  <style>
 
-body {
+    body {
 
-  font-family: Arial, sans-serif;
+      font-family: Arial, sans-serif;
 
-  background: #10131a;
+      background: #f5f0ff;
 
-  color: white;
+      color: #222;
 
-  padding: 20px;
+      padding: 20px;
 
-}
+      text-align: center;
 
-h1 {
+    }
 
-  color: #d9e889;
+    h1 {
 
-}
+      color: #6b35b5;
 
-.card {
+    }
 
-  background: #1d222c;
+    .video {
 
-  padding: 18px;
+      background: white;
 
-  margin: 15px 0;
+      margin: 15px auto;
 
-  border-radius: 12px;
+      padding: 15px;
 
-}
+      border-radius: 12px;
 
-a {
+      max-width: 600px;
 
-  color: #d9e889;
+      box-shadow: 0 2px 8px #ddd;
 
-}
+    }
 
-.views {
+    a {
 
-  font-size: 24px;
+      color: #6b35b5;
 
-  font-weight: bold;
+      font-weight: bold;
 
-}
+      text-decoration: none;
 
-</style>
+    }
+
+    .views {
+
+      margin-top: 10px;
+
+      color: #777;
+
+    }
+
+  </style>
 
 </head>
 
 <body>
 
-<h1>💜 ARNO Fancam Views Tracker</h1>
+  <h1>ARNO Streaming Team 💜</h1>
 
-<p>Automatic YouTube views tracker</p>
+  <p>Support Arno’s fancams!</p>
 
-<div id="videos">
+  <div class="video">
 
-  Loading videos...
+    <h2>OMG!</h2>
 
-</div>
+    <a href="https://youtu.be/OfNUOm6CcAA" target="_blank">
 
-<script>
-
-const videos = [
-
-  {
-
-    title: "ARNO Fancam 1",
-
-    id: "OfNUOm6CcAA"
-
-  },
-
-  {
-
-    title: "ARNO Fancam 2",
-
-    id: "n1ibOjvf4n0"
-
-  },
-
-  {
-
-    title: "ARNO Fancam 3",
-
-    id: "Rd2ISpGUbvw"
-
-  },
-
-  {
-
-    title: "ARNO Fancam 4",
-
-    id: "7mRH3jqLvEU"
-
-  }
-
-];
-
-const container = document.getElementById("videos");
-
-videos.forEach(video => {
-
-  const card = document.createElement("div");
-
-  card.className = "card";
-
-  card.innerHTML = `
-
-    <h2>${video.title}</h2>
-
-    <p class="views">Views: Loading...</p>
-
-    <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank">
-
-      Watch on YouTube
+      Watch fancam
 
     </a>
 
-  `;
+    <p class="views">Views: Coming soon</p>
 
-  container.appendChild(card);
+  </div>
 
-});
+  <div class="video">
 
-</script>
+    <h2>Tambourine</h2>
+
+    <a href="https://youtu.be/n1ibOjvf4n0" target="_blank">
+
+      Watch fancam
+
+    </a>
+
+    <p class="views">Views: Coming soon</p>
+
+  </div>
+
+  <div class="video">
+
+    <h2>Fancam 3</h2>
+
+    <a href="https://youtu.be/Rd2ISpGUbvw" target="_blank">
+
+      Watch fancam
+
+    </a>
+
+    <p class="views">Views: Coming soon</p>
+
+  </div>
+
+  <div class="video">
+
+    <h2>Fancam 4</h2>
+
+    <a href="https://youtu.be/7mRH3jqLvEU" target="_blank">
+
+      Watch fancam
+
+    </a>
+
+    <p class="views">Views: Coming soon</p>
+
+  </div>
 
 </body>
 
