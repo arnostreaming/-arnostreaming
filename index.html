@@ -1,0 +1,145 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>ARNO Fancam Views Tracker</title>
+
+<style>
+
+body {
+
+  font-family: Arial, sans-serif;
+
+  background: #10131a;
+
+  color: white;
+
+  padding: 20px;
+
+}
+
+h1 {
+
+  color: #d9e889;
+
+}
+
+.card {
+
+  background: #1d222c;
+
+  padding: 18px;
+
+  margin: 15px 0;
+
+  border-radius: 12px;
+
+}
+
+a {
+
+  color: #d9e889;
+
+}
+
+.views {
+
+  font-size: 24px;
+
+  font-weight: bold;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>💜 ARNO Fancam Views Tracker</h1>
+
+<p>Automatic YouTube views tracker</p>
+
+<div id="videos">
+
+  Loading videos...
+
+</div>
+
+<script>
+
+const videos = [
+
+  {
+
+    title: "ARNO Fancam 1",
+
+    id: "OfNUOm6CcAA"
+
+  },
+
+  {
+
+    title: "ARNO Fancam 2",
+
+    id: "n1ibOjvf4n0"
+
+  },
+
+  {
+
+    title: "ARNO Fancam 3",
+
+    id: "Rd2ISpGUbvw"
+
+  },
+
+  {
+
+    title: "ARNO Fancam 4",
+
+    id: "7mRH3jqLvEU"
+
+  }
+
+];
+
+const container = document.getElementById("videos");
+
+videos.forEach(video => {
+
+  const card = document.createElement("div");
+
+  card.className = "card";
+
+  card.innerHTML = `
+
+    <h2>${video.title}</h2>
+
+    <p class="views">Views: Loading...</p>
+
+    <a href="https://www.youtube.com/watch?v=${video.id}" target="_blank">
+
+      Watch on YouTube
+
+    </a>
+
+  `;
+
+  container.appendChild(card);
+
+});
+
+</script>
+
+</body>
+
+</html>
