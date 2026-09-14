@@ -1,0 +1,58 @@
+name: Update YouTube Views
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-views:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get repository files
+        uses: actions/checkout@v4
+
+      - name: Update views
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json
+          import urllib.parse
+          import urllib.request
+
+          videos = {
+              "OfNUOm6CcAA": "OMG!",
+              "n1ibOjvf4n0": "Tambourine",
+              "Rd2ISpGUbvw": "Fancam 3",
+              "7mRH3jqLvEU": "Fancam 4"
+          }
+
+          params = urllib.parse.urlencode({
+              "part": "statistics",
+              "id": ",".join(videos.keys()),
+              "key": __import__("os").environ["YOUTUBE_API_KEY"]
+          })
+
+          url = "https://www.googleapis.com/youtube/v3/videos?" + params
+          data = json.load(urllib.request.urlopen(url))
+
+          views = {}
+          for item in data["items"]:
+              views[item["id"]] = item["statistics"].get("viewCount", "0")
+
+          with open("views.json", "w") as file:
+              json.dump(views, file)
+          PY
+
+      - name: Save updated views
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add views.json
+          git commit -m "Update YouTube views" || echo "No changes"
+          git push
