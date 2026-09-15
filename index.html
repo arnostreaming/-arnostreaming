@@ -85,8 +85,7 @@
       Watch fancam
 
     </a>
-
-    <p class="views">Views: Coming soon</p>
+<p class="views" id="views-omg">Loading views...</p>
 
   </div>
 
@@ -100,7 +99,7 @@
 
     </a>
 
-    <p class="views">Views: Coming soon</p>
+    <p class="views" id="views-omg">Loading views...</p>
 
   </div>
 
@@ -114,7 +113,7 @@
 
     </a>
 
-    <p class="views">Views: Coming soon</p>
+<p class="views" id="views-omg">Loading views...</p>
 
   </div>
 
@@ -131,7 +130,33 @@
     <p class="views" id="views-omg">Loading views...</p>
 
   </div>
+<script>
 
+  async function loadViews() {
+
+    try {
+
+      const response = await fetch("views.json");
+
+      const views = await response.json();
+
+      document.getElementById("views-omg").textContent =
+
+        "Views: " + Number(views["OfNUOm6CcAA"] || 0).toLocaleString();
+
+    } catch (error) {
+
+      document.getElementById("views-omg").textContent =
+
+        "Views unavailable";
+
+    }
+
+  }
+
+  loadViews();
+
+</script>
+  
 </body>
-
 </html>
