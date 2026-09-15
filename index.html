@@ -1,162 +1,343 @@
 <!DOCTYPE html>
-
 <html lang="en">
 
 <head>
-
   <meta charset="UTF-8">
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Arno Streaming Team</title>
+  <title>ARNO Streaming Team</title>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
 
     body {
-
-      font-family: Arial, sans-serif;
-
-      background: #f5f0ff;
-
-      color: #222;
-
+      margin: 0;
       padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f5f0ff;
+      color: #222;
+    }
 
+    header {
       text-align: center;
-
+      margin-bottom: 30px;
     }
 
     h1 {
-
       color: #6b35b5;
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
 
+    .subtitle {
+      color: #666;
+      font-size: 16px;
+    }
+
+    #videos {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      max-width: 1100px;
+      margin: auto;
     }
 
     .video {
-
       background: white;
-
-      margin: 15px auto;
-
-      padding: 15px;
-
-      border-radius: 12px;
-
-      max-width: 600px;
-
-      box-shadow: 0 2px 8px #ddd;
-
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.10);
     }
 
-    a {
+    .thumbnail {
+      width: 100%;
+      display: block;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      background: #ddd;
+    }
 
-      color: #6b35b5;
+    .video-content {
+      padding: 18px;
+    }
 
+    .video h2 {
+      color: #333;
+      font-size: 19px;
+      margin: 0 0 15px;
+    }
+
+    .watch-button {
+      display: inline-block;
+      background: #6b35b5;
+      color: white;
+      padding: 11px 18px;
+      border-radius: 9px;
       font-weight: bold;
-
       text-decoration: none;
-
     }
 
-    .views {
+    .watch-button:hover {
+      opacity: 0.85;
+    }
 
-      margin-top: 10px;
-
+    .loading {
+      text-align: center;
       color: #777;
-
+      grid-column: 1 / -1;
     }
 
-  </style>
+    .error {
+      background: white;
+      color: #b00020;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      grid-column: 1 / -1;
+    }
 
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      color: #888;
+      font-size: 13px;
+    }
+  </style>
 </head>
 
 <body>
 
-  <h1>ARNO Streaming Team 💜</h1>
+  <header>
+    <h1>ARNO Streaming Team 💜</h1>
 
-  <p>Support Arno’s fancams!</p>
+    <p class="subtitle">
+      Support Arno's fancams! 🎬
+    </p>
+  </header>
 
-  <div class="video">
 
-    <h2>OMG!</h2>
+  <main id="videos">
 
-    <a href="https://youtu.be/OfNUOm6CcAA" target="_blank">
+    <p class="loading">
+      Loading fancams...
+    </p>
 
-      Watch fancam
+  </main>
 
-    </a>
-<p class="views" id="views-omg">Loading views...</p>
 
-  </div>
+  <footer>
+    Made with 💜 for ARNO Streaming Team
+  </footer>
 
-  <div class="video">
 
-    <h2>Tambourine</h2>
+  <!-- SUPABASE -->
 
-    <a href="https://youtu.be/n1ibOjvf4n0" target="_blank">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-      Watch fancam
+  <script>
 
-    </a>
+    // ==========================================
+    // SUPABASE CONNECTION
+    // ==========================================
 
-    <p class="views" id="views-omg">Loading views...</p>
+    const SUPABASE_URL =
+      "https://bedxcpozjrduuhshrszh.supabase.co";
 
-  </div>
+    const SUPABASE_PUBLISHABLE_KEY =
+      "sb_publishable_dcDicY1qZyD0grDVw_cDwg_eHkt1MD8";
 
-  <div class="video">
 
-    <h2>Fancam 3</h2>
+    const supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
 
-    <a href="https://youtu.be/Rd2ISpGUbvw" target="_blank">
 
-      Watch fancam
+    // ==========================================
+    // LOAD ALL FANCAMS
+    // ==========================================
 
-    </a>
+    async function loadVideos() {
 
-<p class="views" id="views-omg">Loading views...</p>
+      const container =
+        document.getElementById("videos");
 
-  </div>
 
-  <div class="video">
+      try {
 
-    <h2>Fancam 4</h2>
+        const { data, error } =
+          await supabaseClient
+            .from("videos")
+            .select("youtube_id, title");
 
-    <a href="https://youtu.be/7mRH3jqLvEU" target="_blank">
 
-      Watch fancam
+        if (error) {
 
-    </a>
+          throw error;
 
-    <p class="views" id="views-omg">Loading views...</p>
+        }
 
-  </div>
-<script>
 
-  async function loadViews() {
+        container.innerHTML = "";
 
-    try {
 
-      const response = await fetch("views.json");
+        // No videos
 
-      const views = await response.json();
+        if (!data || data.length === 0) {
 
-      document.getElementById("views-omg").textContent =
+          container.innerHTML = `
 
-        "Views: " + Number(views["OfNUOm6CcAA"] || 0).toLocaleString();
+            <p class="loading">
+              No fancams found.
+            </p>
 
-    } catch (error) {
+          `;
 
-      document.getElementById("views-omg").textContent =
+          return;
 
-        "Views unavailable";
+        }
+
+
+        // ==========================================
+        // CREATE A CARD FOR EVERY SUPABASE VIDEO
+        // ==========================================
+
+        data.forEach(video => {
+
+
+          const youtubeId =
+            video.youtube_id;
+
+
+          const title =
+            video.title || "ARNO Fancam";
+
+
+          // YouTube thumbnail
+
+          const thumbnail =
+            `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
+
+
+          // YouTube video URL
+
+          const youtubeURL =
+            `https://www.youtube.com/watch?v=${youtubeId}`;
+
+
+          // Create card
+
+          const card =
+            document.createElement("article");
+
+
+          card.className =
+            "video";
+
+
+          card.innerHTML = `
+
+            <a
+              href="${youtubeURL}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+
+              <img
+                class="thumbnail"
+                src="${thumbnail}"
+                alt="${escapeHTML(title)}"
+                loading="lazy"
+              >
+
+            </a>
+
+
+            <div class="video-content">
+
+              <h2>
+                ${escapeHTML(title)}
+              </h2>
+
+
+              <a
+                class="watch-button"
+                href="${youtubeURL}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+
+                ▶ Watch Fancam
+
+              </a>
+
+            </div>
+
+          `;
+
+
+          container.appendChild(card);
+
+        });
+
+
+      } catch (error) {
+
+
+        console.error(
+          "Supabase error:",
+          error
+        );
+
+
+        container.innerHTML = `
+
+          <div class="error">
+
+            <h2>
+              Unable to load fancams
+            </h2>
+
+            <p>
+              Please try again later.
+            </p>
+
+          </div>
+
+        `;
+
+      }
 
     }
 
-  }
 
-  loadViews();
+    // ==========================================
+    // SECURITY
+    // ==========================================
 
-</script>
-  
+    function escapeHTML(text) {
+
+      const div =
+        document.createElement("div");
+
+      div.textContent =
+        text;
+
+      return div.innerHTML;
+
+    }
+
+
+    // ==========================================
+    // START
+    // ==========================================
+
+    loadVideos();
+
+  </script>
+
 </body>
+
 </html>
