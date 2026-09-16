@@ -75,6 +75,7 @@
       margin-bottom: 16px;
       color: #666;
       font-size: 15px;
+      flex-wrap: wrap;
     }
 
     .stat {
@@ -110,6 +111,11 @@
       border-radius: 12px;
       text-align: center;
       grid-column: 1 / -1;
+      word-break: break-word;
+    }
+
+    .error h2 {
+      margin-top: 0;
     }
 
     footer {
@@ -200,6 +206,8 @@
             .order("sort_order", { ascending: true });
 
 
+        // Check for Supabase error
+
         if (error) {
 
           throw error;
@@ -207,10 +215,14 @@
         }
 
 
+        // Clear loading message
+
         container.innerHTML = "";
 
 
-        // No videos
+        // ==========================================
+        // NO VIDEOS
+        // ==========================================
 
         if (!data || data.length === 0) {
 
@@ -233,7 +245,6 @@
 
         data.forEach(video => {
 
-
           const youtubeId =
             video.youtube_id;
 
@@ -250,19 +261,25 @@
             formatNumber(video.likes);
 
 
-          // YouTube thumbnail
+          // ==========================================
+          // YOUTUBE THUMBNAIL
+          // ==========================================
 
           const thumbnail =
             `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
 
 
-          // YouTube video URL
+          // ==========================================
+          // YOUTUBE VIDEO URL
+          // ==========================================
 
           const youtubeURL =
             `https://www.youtube.com/watch?v=${youtubeId}`;
 
 
-          // Create card
+          // ==========================================
+          // CREATE CARD
+          // ==========================================
 
           const card =
             document.createElement("article");
@@ -333,12 +350,15 @@
 
       } catch (error) {
 
+        // Show error in browser console
 
         console.error(
           "Supabase error:",
           error
         );
 
+
+        // Show the REAL error on the website
 
         container.innerHTML = `
 
@@ -349,7 +369,9 @@
             </h2>
 
             <p>
-              Please try again later.
+              ${escapeHTML(
+                error.message || String(error)
+              )}
             </p>
 
           </div>
