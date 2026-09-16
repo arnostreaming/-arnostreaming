@@ -69,6 +69,20 @@
       margin: 0 0 15px;
     }
 
+    .stats {
+      display: flex;
+      gap: 18px;
+      margin-bottom: 16px;
+      color: #666;
+      font-size: 15px;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
     .watch-button {
       display: inline-block;
       background: #6b35b5;
@@ -156,6 +170,17 @@
 
 
     // ==========================================
+    // FORMAT NUMBERS
+    // ==========================================
+
+    function formatNumber(number) {
+
+      return Number(number || 0).toLocaleString();
+
+    }
+
+
+    // ==========================================
     // LOAD ALL FANCAMS
     // ==========================================
 
@@ -170,7 +195,9 @@
         const { data, error } =
           await supabaseClient
             .from("videos")
-            .select("youtube_id, title");
+            .select("youtube_id, title, views, likes")
+            .eq("active", true)
+            .order("sort_order", { ascending: true });
 
 
         if (error) {
@@ -201,7 +228,7 @@
 
 
         // ==========================================
-        // CREATE A CARD FOR EVERY SUPABASE VIDEO
+        // CREATE CARD FOR EVERY FANCAM
         // ==========================================
 
         data.forEach(video => {
@@ -213,6 +240,14 @@
 
           const title =
             video.title || "ARNO Fancam";
+
+
+          const views =
+            formatNumber(video.views);
+
+
+          const likes =
+            formatNumber(video.likes);
 
 
           // YouTube thumbnail
@@ -260,6 +295,19 @@
               <h2>
                 ${escapeHTML(title)}
               </h2>
+
+
+              <div class="stats">
+
+                <div class="stat">
+                  👁️ ${views} views
+                </div>
+
+                <div class="stat">
+                  ❤️ ${likes} likes
+                </div>
+
+              </div>
 
 
               <a
