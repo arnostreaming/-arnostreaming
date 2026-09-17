@@ -144,6 +144,13 @@
       font-size: 12px;
       margin-top: 25px;
     }
+
+    .refreshing {
+      text-align: center;
+      color: #6b35b5;
+      font-size: 12px;
+      margin-top: 8px;
+    }
   </style>
 </head>
 
@@ -160,6 +167,8 @@
   </div>
 
   <div id="updated" class="updated"></div>
+
+  <div id="refreshing" class="refreshing"></div>
 
 
 <script>
@@ -222,6 +231,7 @@ function escapeHTML(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+
 }
 
 
@@ -240,7 +250,9 @@ async function getData(table, query) {
         "apikey": SUPABASE_KEY,
         "Authorization": `Bearer ${SUPABASE_KEY}`,
         "Content-Type": "application/json"
-      }
+      },
+
+      cache: "no-store"
     }
   );
 
@@ -253,10 +265,12 @@ async function getData(table, query) {
     throw new Error(
       `${table}: ${response.status} ${errorText}`
     );
+
   }
 
 
   return await response.json();
+
 }
 
 
@@ -269,15 +283,18 @@ async function loadVideos() {
   const container =
     document.getElementById("videos");
 
+  const refreshing =
+    document.getElementById("refreshing");
+
 
   try {
 
-    container.innerHTML =
-      `<div class="loading">Loading fancams...</div>`;
+    refreshing.textContent =
+      "Updating views and likes...";
 
 
     /* =====================================
-       GET ALL ACTIVE VIDEOS
+       GET ACTIVE VIDEOS
     ===================================== */
 
     const videos = await getData(
@@ -291,7 +308,10 @@ async function loadVideos() {
       container.innerHTML =
         `<div class="empty">No fancams found.</div>`;
 
+      refreshing.textContent = "";
+
       return;
+
     }
 
 
@@ -309,24 +329,20 @@ async function loadVideos() {
         "?select=id,video_id,views,like,record_at&order=record_at.asc"
       );
 
-    } catch (statsError) {
+    } catch (error) {
 
       console.warn(
         "Video_stats could not be loaded:",
-        statsError
+        error
       );
 
-      /*
-        The website can still work using
-        the current values from videos.
-      */
-
       stats = [];
+
     }
 
 
     /* =====================================
-       GROUP HISTORY BY VIDEO ID
+       GROUP HISTORY BY VIDEO
     ===================================== */
 
     const statsByVideo = {};
@@ -346,6 +362,7 @@ async function loadVideos() {
 
 
       statsByVideo[videoId].push(stat);
+
     }
 
 
@@ -364,49 +381,82 @@ async function loadVideos() {
           statsByVideo[videoId] || [];
 
 
-        /*
-          CURRENT VALUES COME DIRECTLY
-          FROM THE videos TABLE.
-        */
+        /* ---------------------------------
+           SORT HISTORY BY DATE
+        --------------------------------- */
 
-        const currentViews =
+        const sortedHistory =
+          [...history].sort(
+            (a, b) =>
+              new Date(a.record_at).getTime() -
+              new Date(b.record_at).getTime()
+          );
+
+
+        /* ---------------------------------
+           FIRST SNAPSHOT
+        --------------------------------- */
+
+        let firstViews =
           toNumber(video.views);
 
-
-        const currentLikes =
+        let firstLikes =
           toNumber(video.like);
 
 
-        /*
-          HISTORY
-        */
-
-        let firstViews =
-          currentViews;
-
-
-        let firstLikes =
-          currentLikes;
-
-
-        if (history.length > 0) {
-
-          const sortedHistory =
-            [...history].sort(
-              (a, b) =>
-                new Date(a.record_at).getTime() -
-                new Date(b.record_at).getTime()
-            );
-
+        if (sortedHistory.length > 0) {
 
           firstViews =
             toNumber(sortedHistory[0].views);
-
 
           firstLikes =
             toNumber(sortedHistory[0].like);
 
         }
+
+
+        /* ---------------------------------
+           LATEST SNAPSHOT
+        --------------------------------- */
+
+        let currentViews =
+          toNumber(video.views);
+
+        let currentLikes =
+          toNumber(video.like);
+
+
+        if (sortedHistory.length > 0) {
+
+          const latest =
+            sortedHistory[sortedHistory.length - 1];
+
+
+          currentViews =
+            toNumber(latest.views);
+
+          currentLikes =
+            toNumber(latest.like);
+
+        }
+
+
+        /* ---------------------------------
+           PROGRESS
+        --------------------------------- */
+
+        const viewsGained =
+          Math.max(
+            0,
+            currentViews - firstViews
+          );
+
+
+        const likesGained =
+          Math.max(
+            0,
+            currentLikes - firstLikes
+          );
 
 
         return {
@@ -417,19 +467,15 @@ async function loadVideos() {
 
           currentLikes,
 
-          viewsGained:
-            Math.max(
-              0,
-              currentViews - firstViews
-            ),
+          firstViews,
 
-          likesGained:
-            Math.max(
-              0,
-              currentLikes - firstLikes
-            ),
+          firstLikes,
 
-          history
+          viewsGained,
+
+          likesGained,
+
+          history: sortedHistory
 
         };
 
@@ -437,38 +483,27 @@ async function loadVideos() {
 
 
     /* =====================================
-       IMPORTANT SORT
+       SORT VIDEOS
        
-       LOWEST VIEWS
-       ↓
-       HIGHEST VIEWS
-       
-       Chain = 1,266,761
-       Therefore Chain should be LAST.
+       LOWEST VIEWS → HIGHEST VIEWS
+
+       LOWEST = FIRST
+       HIGHEST = LAST
     ===================================== */
 
     finalVideos.sort((a, b) => {
 
-      const viewsA =
-        Number(a.views) || 0;
-
-
-      const viewsB =
-        Number(b.views) || 0;
-
-
-      return viewsA - viewsB;
+      return a.currentViews - b.currentViews;
 
     });
 
 
     /* =====================================
-       DISPLAY
+       DISPLAY VIDEOS
     ===================================== */
 
     container.innerHTML =
       finalVideos.map((video, index) => {
-
 
         const youtubeId =
           video.youtube_id;
@@ -484,7 +519,7 @@ async function loadVideos() {
 
 
         /* =================================
-           HISTORY CHART
+           PROGRESS CHART
         ================================= */
 
         let chartHTML = "";
@@ -492,16 +527,8 @@ async function loadVideos() {
 
         if (video.history.length > 0) {
 
-          const history =
-            [...video.history].sort(
-              (a, b) =>
-                new Date(a.record_at).getTime() -
-                new Date(b.record_at).getTime()
-            );
-
-
           const values =
-            history.map(
+            video.history.map(
               item =>
                 toNumber(item.views)
             );
@@ -514,7 +541,7 @@ async function loadVideos() {
           chartHTML = `
 
             <div class="progress-title">
-              Views Progress
+              📈 Views Progress
             </div>
 
             <div class="chart">
@@ -586,7 +613,7 @@ async function loadVideos() {
                   ${formatNumber(video.currentViews)}
                 </strong>
 
-                Views
+                👁️ Views
 
               </div>
 
@@ -597,7 +624,7 @@ async function loadVideos() {
                   ${formatNumber(video.currentLikes)}
                 </strong>
 
-                Likes
+                ❤️ Likes
 
               </div>
 
@@ -653,6 +680,9 @@ async function loadVideos() {
       `Last updated: ${new Date().toLocaleString()}`;
 
 
+    refreshing.textContent = "";
+
+
   } catch (error) {
 
     console.error(error);
@@ -672,6 +702,9 @@ async function loadVideos() {
 
     `;
 
+
+    refreshing.textContent = "";
+
   }
 
 }
@@ -685,7 +718,7 @@ loadVideos();
 
 
 /* =========================================
-   AUTOMATIC REFRESH
+   AUTO REFRESH
    EVERY 60 SECONDS
 ========================================= */
 
