@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Arno Streaming Team</title>
 
   <style>
@@ -48,6 +49,7 @@
     .video h2 {
       font-size: 18px;
       margin: 15px 0 12px;
+      color: #333;
     }
 
     .stats {
@@ -121,6 +123,10 @@
       font-weight: bold;
     }
 
+    .watch:hover {
+      opacity: 0.9;
+    }
+
     .loading,
     .empty,
     .error {
@@ -155,7 +161,12 @@
 
   <div id="updated" class="updated"></div>
 
+
 <script>
+
+/* =========================================
+   SUPABASE
+========================================= */
 
 const SUPABASE_URL =
   "https://bedxcpozjrduuhshrszh.supabase.co";
@@ -164,9 +175,9 @@ const SUPABASE_KEY =
   "sb_publishable_dcDicY1qZyD0grDVw_cDwg_eHkt1MD8";
 
 
-/* =========================
-   NUMBER
-========================= */
+/* =========================================
+   NUMBER HELPER
+========================================= */
 
 function toNumber(value) {
 
@@ -182,20 +193,26 @@ function toNumber(value) {
     .replace(/,/g, "")
     .replace(/[^\d.-]/g, "");
 
-  const result = Number(cleaned);
+  const number = Number(cleaned);
 
-  return Number.isFinite(result) ? result : 0;
+  return Number.isFinite(number)
+    ? number
+    : 0;
 }
 
+
+/* =========================================
+   FORMAT NUMBERS
+========================================= */
 
 function formatNumber(value) {
   return toNumber(value).toLocaleString();
 }
 
 
-/* =========================
-   HTML SAFETY
-========================= */
+/* =========================================
+   ESCAPE HTML
+========================================= */
 
 function escapeHTML(value) {
 
@@ -208,9 +225,9 @@ function escapeHTML(value) {
 }
 
 
-/* =========================
-   SUPABASE
-========================= */
+/* =========================================
+   SUPABASE REQUEST
+========================================= */
 
 async function getData(table, query) {
 
@@ -218,34 +235,40 @@ async function getData(table, query) {
     `${SUPABASE_URL}/rest/v1/${table}${query}`,
     {
       method: "GET",
+
       headers: {
         "apikey": SUPABASE_KEY,
-        "Authorization": `Bearer ${SUPABASE_KEY}`
+        "Authorization": `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json"
       }
     }
   );
 
+
   if (!response.ok) {
 
-    const message = await response.text();
+    const errorText =
+      await response.text();
 
     throw new Error(
-      `${table}: ${response.status} ${message}`
+      `${table}: ${response.status} ${errorText}`
     );
   }
+
 
   return await response.json();
 }
 
 
-/* =========================
-   LOAD WEBSITE
-========================= */
+/* =========================================
+   LOAD VIDEOS
+========================================= */
 
 async function loadVideos() {
 
   const container =
     document.getElementById("videos");
+
 
   try {
 
@@ -253,9 +276,9 @@ async function loadVideos() {
       `<div class="loading">Loading fancams...</div>`;
 
 
-    /* -------------------------
-       1. GET ALL ACTIVE VIDEOS
-    ------------------------- */
+    /* =====================================
+       GET ALL ACTIVE VIDEOS
+    ===================================== */
 
     const videos = await getData(
       "videos",
@@ -263,7 +286,7 @@ async function loadVideos() {
     );
 
 
-    if (!videos.length) {
+    if (!videos || videos.length === 0) {
 
       container.innerHTML =
         `<div class="empty">No fancams found.</div>`;
@@ -272,164 +295,176 @@ async function loadVideos() {
     }
 
 
-    /* -------------------------
-       2. GET ALL SNAPSHOTS
-    ------------------------- */
+    /* =====================================
+       GET HISTORY
+    ===================================== */
 
-    const stats = await getData(
-      "Video_stats",
-      "?select=id,video_id,views,like,record_at&order=record_at.asc"
-    );
+    let stats = [];
 
 
-    /* -------------------------
-       3. PUT SNAPSHOTS
-          UNDER EACH VIDEO
-    ------------------------- */
+    try {
+
+      stats = await getData(
+        "Video_stats",
+        "?select=id,video_id,views,like,record_at&order=record_at.asc"
+      );
+
+    } catch (statsError) {
+
+      console.warn(
+        "Video_stats could not be loaded:",
+        statsError
+      );
+
+      /*
+        The website can still work using
+        the current values from videos.
+      */
+
+      stats = [];
+    }
+
+
+    /* =====================================
+       GROUP HISTORY BY VIDEO ID
+    ===================================== */
 
     const statsByVideo = {};
 
 
     for (const stat of stats) {
 
-      const id = String(stat.video_id);
+      const videoId =
+        String(stat.video_id);
 
-      if (!statsByVideo[id]) {
-        statsByVideo[id] = [];
+
+      if (!statsByVideo[videoId]) {
+
+        statsByVideo[videoId] = [];
+
       }
 
-      statsByVideo[id].push(stat);
+
+      statsByVideo[videoId].push(stat);
     }
 
 
-    /* -------------------------
-       4. PREPARE EACH VIDEO
-    ------------------------- */
+    /* =====================================
+       PREPARE VIDEOS
+    ===================================== */
 
-    const finalVideos = videos.map(video => {
+    const finalVideos =
+      videos.map(video => {
 
-      const id = String(video.id);
-
-      let history =
-        statsByVideo[id] || [];
+        const videoId =
+          String(video.id);
 
 
-      /* Oldest → newest */
+        const history =
+          statsByVideo[videoId] || [];
 
-      history.sort((a, b) => {
 
-        return new Date(a.record_at) -
-               new Date(b.record_at);
+        /*
+          CURRENT VALUES COME DIRECTLY
+          FROM THE videos TABLE.
+        */
+
+        const currentViews =
+          toNumber(video.views);
+
+
+        const currentLikes =
+          toNumber(video.like);
+
+
+        /*
+          HISTORY
+        */
+
+        let firstViews =
+          currentViews;
+
+
+        let firstLikes =
+          currentLikes;
+
+
+        if (history.length > 0) {
+
+          const sortedHistory =
+            [...history].sort(
+              (a, b) =>
+                new Date(a.record_at).getTime() -
+                new Date(b.record_at).getTime()
+            );
+
+
+          firstViews =
+            toNumber(sortedHistory[0].views);
+
+
+          firstLikes =
+            toNumber(sortedHistory[0].like);
+
+        }
+
+
+        return {
+
+          ...video,
+
+          currentViews,
+
+          currentLikes,
+
+          viewsGained:
+            Math.max(
+              0,
+              currentViews - firstViews
+            ),
+
+          likesGained:
+            Math.max(
+              0,
+              currentLikes - firstLikes
+            ),
+
+          history
+
+        };
 
       });
 
 
-      /* Latest snapshot */
-
-      const latest =
-        history.length
-          ? history[history.length - 1]
-          : null;
-
-
-      /* First snapshot */
-
-      const first =
-        history.length
-          ? history[0]
-          : null;
-
-
-      /* CURRENT VIEWS */
-
-      const currentViews =
-        latest
-          ? toNumber(latest.views)
-          : toNumber(video.views);
-
-
-      /* CURRENT LIKES */
-
-      const currentLikes =
-        latest
-          ? toNumber(latest.like)
-          : toNumber(video.like);
-
-
-      /* STARTING VIEWS */
-
-      const startingViews =
-        first
-          ? toNumber(first.views)
-          : currentViews;
-
-
-      /* STARTING LIKES */
-
-      const startingLikes =
-        first
-          ? toNumber(first.like)
-          : currentLikes;
-
-
-      return {
-
-        ...video,
-
-        currentViews,
-
-        currentLikes,
-
-        viewsGained:
-          Math.max(
-            0,
-            currentViews - startingViews
-          ),
-
-        likesGained:
-          Math.max(
-            0,
-            currentLikes - startingLikes
-          ),
-
-        history
-
-      };
-
-    });
-
-
-    /* -------------------------
-       5. SORT ALL 26 VIDEOS
-          LOWEST → HIGHEST
-    ------------------------- */
+    /* =====================================
+       IMPORTANT SORT
+       
+       LOWEST VIEWS
+       ↓
+       HIGHEST VIEWS
+       
+       Chain = 1,266,761
+       Therefore Chain should be LAST.
+    ===================================== */
 
     finalVideos.sort((a, b) => {
 
-      const aViews =
-        Number(a.currentViews);
-
-      const bViews =
-        Number(b.currentViews);
+      const viewsA =
+        Number(a.views) || 0;
 
 
-      if (aViews < bViews) {
-        return -1;
-      }
+      const viewsB =
+        Number(b.views) || 0;
 
-      if (aViews > bViews) {
-        return 1;
-      }
 
-      return String(a.id)
-        .localeCompare(String(b.id));
+      return viewsA - viewsB;
 
     });
 
 
-    /* -------------------------
-       6. DISPLAY
-    ------------------------- */
+    /* =====================================
+       DISPLAY
+    ===================================== */
 
     container.innerHTML =
       finalVideos.map((video, index) => {
@@ -444,22 +479,31 @@ async function loadVideos() {
           `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
 
 
-        const watch =
+        const watchUrl =
           `https://www.youtube.com/watch?v=${youtubeId}`;
 
 
-        /* -------------------------
-           HISTORY GRAPH
-        ------------------------- */
+        /* =================================
+           HISTORY CHART
+        ================================= */
 
-        let chart = "";
+        let chartHTML = "";
 
 
-        if (video.history.length) {
+        if (video.history.length > 0) {
+
+          const history =
+            [...video.history].sort(
+              (a, b) =>
+                new Date(a.record_at).getTime() -
+                new Date(b.record_at).getTime()
+            );
+
 
           const values =
-            video.history.map(
-              item => toNumber(item.views)
+            history.map(
+              item =>
+                toNumber(item.views)
             );
 
 
@@ -467,7 +511,7 @@ async function loadVideos() {
             Math.max(...values, 1);
 
 
-          chart = `
+          chartHTML = `
 
             <div class="progress-title">
               Views Progress
@@ -502,7 +546,7 @@ async function loadVideos() {
 
         } else {
 
-          chart = `
+          chartHTML = `
 
             <div class="no-history">
               No history recorded yet.
@@ -512,6 +556,10 @@ async function loadVideos() {
 
         }
 
+
+        /* =================================
+           VIDEO CARD
+        ================================= */
 
         return `
 
@@ -559,6 +607,7 @@ async function loadVideos() {
             <div class="gain">
 
               📈 Views gained:
+
               <strong>
                 +${formatNumber(video.viewsGained)}
               </strong>
@@ -569,6 +618,7 @@ async function loadVideos() {
             <div class="gain">
 
               ❤️ Likes gained:
+
               <strong>
                 +${formatNumber(video.likesGained)}
               </strong>
@@ -576,12 +626,12 @@ async function loadVideos() {
             </div>
 
 
-            ${chart}
+            ${chartHTML}
 
 
             <a
               class="watch"
-              href="${watch}"
+              href="${watchUrl}"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -595,6 +645,10 @@ async function loadVideos() {
       }).join("");
 
 
+    /* =====================================
+       LAST UPDATED
+    ===================================== */
+
     document.getElementById("updated").textContent =
       `Last updated: ${new Date().toLocaleString()}`;
 
@@ -603,15 +657,16 @@ async function loadVideos() {
 
     console.error(error);
 
+
     container.innerHTML = `
 
       <div class="error">
 
-        ❌ Something went wrong.
+        ❌ Unable to load fancams.
 
         <br><br>
 
-        Please check Supabase permissions.
+        ${escapeHTML(error.message)}
 
       </div>
 
@@ -622,16 +677,17 @@ async function loadVideos() {
 }
 
 
-/* =========================
-   START
-========================= */
+/* =========================================
+   FIRST LOAD
+========================================= */
 
 loadVideos();
 
 
-/* =========================
-   REFRESH EVERY 60 SECONDS
-========================= */
+/* =========================================
+   AUTOMATIC REFRESH
+   EVERY 60 SECONDS
+========================================= */
 
 setInterval(
   loadVideos,
