@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>Arno Streaming Team</title>
-
   <style>
     body {
       margin: 0;
@@ -14,24 +12,20 @@
       font-family: Arial, sans-serif;
       color: #333;
     }
-
     h1 {
       text-align: center;
       color: #6b35b5;
       margin-bottom: 8px;
     }
-
     .subtitle {
       text-align: center;
       color: #777;
       margin-bottom: 25px;
     }
-
     #videos {
       max-width: 700px;
       margin: auto;
     }
-
     .video {
       background: white;
       padding: 15px;
@@ -39,25 +33,21 @@
       border-radius: 12px;
       box-shadow: 0 3px 12px rgba(0,0,0,0.08);
     }
-
     .video img {
       width: 100%;
       border-radius: 10px;
       display: block;
     }
-
     .video h2 {
       font-size: 18px;
       margin: 15px 0 12px;
       color: #333;
     }
-
     .stats {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
     }
-
     .stat {
       flex: 1;
       min-width: 120px;
@@ -66,27 +56,23 @@
       border-radius: 8px;
       text-align: center;
     }
-
     .stat strong {
       display: block;
       color: #6b35b5;
       font-size: 18px;
       margin-bottom: 4px;
     }
-
     .gain {
       margin-top: 8px;
       font-size: 14px;
       color: #555;
     }
-
     .progress-title {
       margin-top: 16px;
       margin-bottom: 8px;
       color: #6b35b5;
       font-weight: bold;
     }
-
     .chart {
       height: 120px;
       display: flex;
@@ -97,20 +83,17 @@
       border-radius: 8px;
       overflow-x: auto;
     }
-
     .bar {
       min-width: 12px;
       background: #9b6bd3;
       border-radius: 4px 4px 0 0;
     }
-
     .no-history {
       text-align: center;
       color: #888;
       padding: 15px;
       font-size: 13px;
     }
-
     .watch {
       display: block;
       margin-top: 15px;
@@ -122,19 +105,16 @@
       border-radius: 8px;
       font-weight: bold;
     }
-
     .loading,
     .empty,
     .error {
       text-align: center;
       padding: 30px;
     }
-
     .error {
       color: #b00020;
       word-break: break-word;
     }
-
     .updated {
       text-align: center;
       color: #888;
@@ -143,32 +123,21 @@
     }
   </style>
 </head>
-
 <body>
-
   <h1>ARNO Streaming Team 💜</h1>
-
   <div class="subtitle">
     Support Arno's fancams ✨
   </div>
-
   <div id="videos">
     <div class="loading">Loading fancams...</div>
   </div>
-
   <div id="updated"></div>
-
 <script>
-
 const SUPABASE_URL =
   "https://bedxcpozjrduuhshrszh.supabase.co";
-
 const SUPABASE_KEY =
   "sb_publishable_dcDicY1qZyD0grDVw_cDwg_eHkt1MD8";
-
-
 function toNumber(value) {
-
   if (
     value === null ||
     value === undefined ||
@@ -176,40 +145,28 @@ function toNumber(value) {
   ) {
     return 0;
   }
-
   const number = Number(
     String(value).replace(/,/g, "")
   );
-
   return Number.isFinite(number) ? number : 0;
 }
-
-
 function formatNumber(value) {
   return toNumber(value).toLocaleString();
 }
-
-
 function escapeHTML(value) {
-
   return String(value ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
-
 }
-
-
 async function getData(table, query) {
-
   const response = await fetch(
     `${SUPABASE_URL}/rest/v1/${table}${query}`,
     {
       method: "GET",
       cache: "no-store",
-
       headers: {
         "apikey": SUPABASE_KEY,
         "Authorization": `Bearer ${SUPABASE_KEY}`,
@@ -217,183 +174,109 @@ async function getData(table, query) {
       }
     }
   );
-
   if (!response.ok) {
-
     const text = await response.text();
-
     throw new Error(
       `${table}: ${response.status} ${text}`
     );
-
   }
-
   return await response.json();
 }
-
-
 async function loadVideos() {
-
   const container =
     document.getElementById("videos");
-
-
   try {
-
     /* ===============================
        VIDEOS
     =============================== */
-
     const videos = await getData(
       "videos",
-      "?select=id,youtube_id,title,thumbnail,views,like,active,sort_order,updated_at&active=eq.true"
+      "?select=id,youtube_id,title,thumbnail,views,likes,active,sort_order,updated_at&active=eq.true"
     );
-
-
     if (!videos.length) {
-
       container.innerHTML =
         `<div class="empty">No fancams found.</div>`;
-
       return;
-
     }
-
-
     /* ===============================
        HISTORY
     =============================== */
-
     let stats = [];
-
     try {
-
       stats = await getData(
         "Video_stats",
-        "?select=id,video_id,views,like,record_at&order=record_at.asc"
+        "?select=id,video_id,views,likes,record_at&order=record_at.asc"
       );
-
     } catch (error) {
-
       console.log(
         "History unavailable:",
         error
       );
-
     }
-
-
     /* ===============================
        GROUP HISTORY
     =============================== */
-
     const historyByVideo = {};
-
-
     stats.forEach(stat => {
-
       const id =
         String(stat.video_id);
-
-
       if (!historyByVideo[id]) {
         historyByVideo[id] = [];
       }
-
-
       historyByVideo[id].push(stat);
-
     });
-
-
     /* ===============================
        PREPARE VIDEOS
     =============================== */
-
     const finalVideos =
       videos.map(video => {
-
         const id =
           String(video.id);
-
-
         const history =
           historyByVideo[id] || [];
-
-
         /*
           CURRENT VALUES:
           DIRECTLY FROM videos TABLE
         */
-
         const currentViews =
           toNumber(video.views);
-
-
         const currentLikes =
-          toNumber(video.like);
-
-
+          toNumber(video.likes);
         /*
           FIRST HISTORY VALUE
         */
-
         let firstViews =
           currentViews;
-
-
         let firstLikes =
           currentLikes;
-
-
         if (history.length > 0) {
-
           firstViews =
             toNumber(history[0].views);
-
           firstLikes =
-            toNumber(history[0].like);
-
+            toNumber(history[0].likes);
         }
-
-
         /*
           PROGRESS
         */
-
         const viewsGained =
           Math.max(
             0,
             currentViews - firstViews
           );
-
-
         const likesGained =
           Math.max(
             0,
             currentLikes - firstLikes
           );
-
-
         return {
-
           ...video,
-
           currentViews,
-
           currentLikes,
-
           viewsGained,
-
           likesGained,
-
           history
-
         };
-
       });
-
-
     /* ===============================
        SORT
        
@@ -401,170 +284,103 @@ async function loadVideos() {
        
        MOST VIEWED = LAST
     =============================== */
-
     finalVideos.sort(
       (a, b) =>
         a.currentViews - b.currentViews
     );
-
-
     /* ===============================
        DISPLAY
     =============================== */
-
     container.innerHTML =
       finalVideos.map((video, index) => {
-
         const youtubeId =
           video.youtube_id;
-
-
         const thumbnail =
           video.thumbnail ||
           `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
-
-
         const watchUrl =
           `https://www.youtube.com/watch?v=${youtubeId}`;
-
-
         /* ===========================
            PROGRESS
         =========================== */
-
         let progressHTML = "";
-
-
         if (video.history.length > 0) {
-
           const values =
             video.history.map(
               item =>
                 toNumber(item.views)
             );
-
-
           const max =
             Math.max(...values, 1);
-
-
           progressHTML = `
-
             <div class="progress-title">
               📈 Views Progress
             </div>
-
             <div class="chart">
-
               ${values.map(value => {
-
                 const height =
                   Math.max(
                     5,
                     (value / max) * 100
                   );
-
-
                 return `
-
                   <div
                     class="bar"
                     style="height:${height}%"
                     title="${formatNumber(value)} views">
                   </div>
-
                 `;
-
               }).join("")}
-
             </div>
-
           `;
-
         } else {
-
           progressHTML = `
-
             <div class="no-history">
               No history recorded yet.
             </div>
-
           `;
-
         }
-
-
         /* ===========================
            CARD
         =========================== */
-
         return `
-
           <div class="video">
-
             <img
               src="${escapeHTML(thumbnail)}"
               alt="${escapeHTML(video.title)}"
               loading="lazy"
             >
-
             <h2>
               ${index + 1}.
               ${escapeHTML(video.title)}
             </h2>
-
-
             <div class="stats">
-
               <div class="stat">
-
                 <strong>
                   ${formatNumber(video.currentViews)}
                 </strong>
-
                 👁️ Views
-
               </div>
-
-
               <div class="stat">
-
                 <strong>
                   ${formatNumber(video.currentLikes)}
                 </strong>
-
                 ❤️ Likes
-
               </div>
-
             </div>
-
-
             <div class="gain">
-
               📈 Views gained:
-
               <strong>
                 +${formatNumber(video.viewsGained)}
               </strong>
-
             </div>
-
-
             <div class="gain">
-
               ❤️ Likes gained:
-
               <strong>
                 +${formatNumber(video.likesGained)}
               </strong>
-
             </div>
-
-
             ${progressHTML}
-
-
             <a
               class="watch"
               href="${watchUrl}"
@@ -573,58 +389,33 @@ async function loadVideos() {
             >
               ▶ Watch on YouTube
             </a>
-
           </div>
-
         `;
-
       }).join("");
-
-
     document.getElementById("updated").textContent =
       `Last updated: ${new Date().toLocaleString()}`;
-
-
   } catch (error) {
-
     console.error(error);
-
     container.innerHTML = `
-
       <div class="error">
-
         ❌ Unable to load fancams.
-
         <br><br>
-
         ${escapeHTML(error.message)}
-
       </div>
-
     `;
-
   }
-
 }
-
-
 /* ===============================
    LOAD
 =============================== */
-
 loadVideos();
-
-
 /* ===============================
    REFRESH EVERY 60 SECONDS
 =============================== */
-
 setInterval(
   loadVideos,
   60000
 );
-
 </script>
-
 </body>
 </html>
