@@ -1,17 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>ARNO Streaming Team</title>
-
   <style>
     * {
       box-sizing: border-box;
     }
-
     body {
       margin: 0;
       padding: 20px;
@@ -19,23 +15,19 @@
       background: #f5f0ff;
       color: #222;
     }
-
     header {
       text-align: center;
       margin-bottom: 30px;
     }
-
     h1 {
       color: #6b35b5;
       font-size: 32px;
       margin-bottom: 8px;
     }
-
     .subtitle {
       color: #666;
       font-size: 16px;
     }
-
     #videos {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -43,14 +35,12 @@
       max-width: 1100px;
       margin: auto;
     }
-
     .video {
       background: white;
       border-radius: 16px;
       overflow: hidden;
       box-shadow: 0 3px 12px rgba(0, 0, 0, 0.10);
     }
-
     .thumbnail {
       width: 100%;
       display: block;
@@ -58,17 +48,14 @@
       object-fit: cover;
       background: #ddd;
     }
-
     .video-content {
       padding: 18px;
     }
-
     .video h2 {
       color: #333;
       font-size: 19px;
       margin: 0 0 15px;
     }
-
     .stats {
       margin: 12px 0;
       padding: 12px;
@@ -77,17 +64,14 @@
       font-size: 14px;
       line-height: 1.8;
     }
-
     .stats strong {
       color: #6b35b5;
     }
-
     .progress-text {
       font-size: 13px;
       color: #777;
       margin-top: 8px;
     }
-
     .progress-bar {
       width: 100%;
       height: 8px;
@@ -96,13 +80,11 @@
       overflow: hidden;
       margin-top: 5px;
     }
-
     .progress-fill {
       height: 100%;
       background: #6b35b5;
       border-radius: 20px;
     }
-
     .watch-button {
       display: inline-block;
       background: #6b35b5;
@@ -113,17 +95,14 @@
       text-decoration: none;
       margin-top: 8px;
     }
-
     .watch-button:hover {
       opacity: 0.85;
     }
-
     .loading {
       text-align: center;
       color: #777;
       grid-column: 1 / -1;
     }
-
     .error {
       background: white;
       color: #b00020;
@@ -132,7 +111,6 @@
       text-align: center;
       grid-column: 1 / -1;
     }
-
     footer {
       text-align: center;
       margin-top: 40px;
@@ -141,215 +119,171 @@
     }
   </style>
 </head>
-
 <body>
-
   <header>
     <h1>ARNO Streaming Team 💜</h1>
-
     <p class="subtitle">
       Support Arno's fancams! 🎬
     </p>
   </header>
-
   <main id="videos">
-
     <p class="loading">
       Loading fancams...
     </p>
-
   </main>
-
   <footer>
     Made with 💜 for ARNO Streaming Team
   </footer>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <script>
-
     const SUPABASE_URL =
       "https://bedxcpozjrduuhshrszh.supabase.co";
-
     const SUPABASE_PUBLISHABLE_KEY =
       "sb_publishable_dcDicY1qZyD0grDVw_cDwg_eHkt1MD8";
-
     const supabaseClient = window.supabase.createClient(
       SUPABASE_URL,
       SUPABASE_PUBLISHABLE_KEY
     );
-
-
     function formatNumber(number) {
       return Number(number || 0).toLocaleString();
     }
-
-
     function escapeHTML(text) {
-
       const div = document.createElement("div");
-
       div.textContent = text;
-
       return div.innerHTML;
-
     }
-
-
     async function loadVideos() {
-
       const container =
         document.getElementById("videos");
-
       try {
-
         const { data, error } =
           await supabaseClient
             .from("videos")
             .select(
               "id,youtube_id,title,thumbnail,views,likes,active,sort_order,updated_at"
             )
-            .eq("active", true)
-            .order("views", {
-              ascending: true
-            });
-
-
+            .eq("active", true);
         if (error) {
           throw error;
         }
-
-
+        /*
+          SORT VIDEOS FROM LOWEST VIEWS
+          TO HIGHEST VIEWS
+        */
+        data.sort((a, b) => {
+          const viewsA =
+            Number(a.views) || 0;
+          const viewsB =
+            Number(b.views) || 0;
+          return viewsA - viewsB;
+        });
         container.innerHTML = "";
-
-
         if (!data || data.length === 0) {
-
           container.innerHTML = `
             <p class="loading">
               No fancams found.
             </p>
           `;
-
           return;
         }
-
-
         /*
           Highest views in the database.
-          Used to calculate the progress bar.
+          Used for the progress bar.
         */
-
         const highestViews =
           Math.max(
             ...data.map(video =>
               Number(video.views) || 0
             )
           );
-
-
         data.forEach(video => {
-
           const youtubeId =
             video.youtube_id;
-
           const title =
             video.title || "ARNO Fancam";
-
+          /*
+            Keep NULL values as N/A
+            instead of changing them to 0.
+          */
           const views =
-            Number(video.views) || 0;
-
+            video.views !== null &&
+            video.views !== undefined
+              ? Number(video.views)
+              : null;
           const likes =
-            Number(video.likes) || 0;
-
-
+            video.likes !== null &&
+            video.likes !== undefined
+              ? Number(video.likes)
+              : null;
           const thumbnail =
             video.thumbnail ||
             `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
-
-
           const youtubeURL =
             `https://www.youtube.com/watch?v=${youtubeId}`;
-
-
           /*
-            Progress compared with the highest-view fancam.
+            Progress compared with the
+            highest-view fancam.
           */
-
           let progress = 0;
-
-          if (highestViews > 0) {
-
+          if (
+            highestViews > 0 &&
+            views !== null
+          ) {
             progress =
               (views / highestViews) * 100;
-
           }
-
-
           const card =
             document.createElement("article");
-
           card.className = "video";
-
-
           card.innerHTML = `
-
             <a
               href="${youtubeURL}"
               target="_blank"
               rel="noopener noreferrer"
             >
-
               <img
                 class="thumbnail"
                 src="${thumbnail}"
                 alt="${escapeHTML(title)}"
                 loading="lazy"
               >
-
             </a>
-
-
             <div class="video-content">
-
               <h2>
                 ${escapeHTML(title)}
               </h2>
-
-
               <div class="stats">
-
                 <div>
                   👁️ <strong>
-                    ${formatNumber(views)}
+                    ${
+                      views !== null
+                        ? formatNumber(views)
+                        : "N/A"
+                    }
                   </strong>
                   Views
                 </div>
-
                 <div>
                   ❤️ <strong>
-                    ${formatNumber(likes)}
+                    ${
+                      likes !== null
+                        ? formatNumber(likes)
+                        : "N/A"
+                    }
                   </strong>
                   Likes
                 </div>
-
                 <div class="progress-text">
                   📊 Progress:
                   ${progress.toFixed(1)}%
                 </div>
-
                 <div class="progress-bar">
-
                   <div
                     class="progress-fill"
                     style="width: ${progress}%"
                   ></div>
-
                 </div>
-
               </div>
-
-
               <a
                 class="watch-button"
                 href="${youtubeURL}"
@@ -358,64 +292,40 @@
               >
                 ▶ Watch Fancam
               </a>
-
             </div>
-
           `;
-
-
           container.appendChild(card);
-
         });
-
-
       } catch (error) {
-
         console.error(
           "Supabase error:",
           error
         );
-
-
         container.innerHTML = `
-
           <div class="error">
-
             <h2>
               Unable to load fancams
             </h2>
-
             <p>
-              ${escapeHTML(error.message || "Unknown error")}
+              ${escapeHTML(
+                error.message || "Unknown error"
+              )}
             </p>
-
           </div>
-
         `;
-
       }
-
     }
-
-
     /*
-      Load the fancams immediately.
+      Load fancams immediately.
     */
-
     loadVideos();
-
-
     /*
       Refresh every 60 seconds.
     */
-
     setInterval(
       loadVideos,
       60000
     );
-
   </script>
-
 </body>
-
 </html>
