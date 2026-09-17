@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>ARNO Streaming Team</title>
+
   <style>
     * {
       box-sizing: border-box;
     }
+
     body {
       margin: 0;
       padding: 20px;
@@ -15,23 +19,28 @@
       background: #f5f0ff;
       color: #222;
     }
+
     header {
       text-align: center;
       margin-bottom: 30px;
     }
+
     h1 {
       color: #6b35b5;
       font-size: 32px;
       margin-bottom: 8px;
     }
+
     .subtitle {
       color: #666;
       font-size: 16px;
     }
+
     .updated {
       color: #888;
       font-size: 13px;
     }
+
     #videos {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -39,12 +48,14 @@
       max-width: 1100px;
       margin: auto;
     }
+
     .video {
       background: white;
       border-radius: 16px;
       overflow: hidden;
       box-shadow: 0 3px 12px rgba(0, 0, 0, 0.10);
     }
+
     .thumbnail {
       width: 100%;
       display: block;
@@ -52,29 +63,78 @@
       object-fit: cover;
       background: #ddd;
     }
+
     .video-content {
       padding: 18px;
     }
+
     .video h2 {
       color: #333;
       font-size: 19px;
       margin: 0 0 15px;
     }
+
     .stats {
       display: flex;
       gap: 18px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       color: #666;
       font-size: 15px;
       flex-wrap: wrap;
     }
+
     .stat {
       display: flex;
       align-items: center;
       gap: 5px;
     }
+
+    .progress-box {
+      margin-top: 12px;
+      padding: 14px;
+      background: #f8f5ff;
+      border-radius: 12px;
+    }
+
+    .progress-title {
+      color: #6b35b5;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .gain {
+      margin: 5px 0;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .chart {
+      height: 90px;
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      margin-top: 12px;
+      padding: 5px 0;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .bar {
+      flex: 1;
+      min-width: 4px;
+      background: #6b35b5;
+      border-radius: 4px 4px 0 0;
+      opacity: 0.75;
+    }
+
+    .no-history {
+      color: #888;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
     .watch-button {
       display: inline-block;
+      margin-top: 14px;
       background: #6b35b5;
       color: white;
       padding: 11px 18px;
@@ -82,14 +142,17 @@
       font-weight: bold;
       text-decoration: none;
     }
+
     .watch-button:hover {
       opacity: 0.85;
     }
+
     .loading {
       text-align: center;
       color: #777;
       grid-column: 1 / -1;
     }
+
     .error {
       background: white;
       color: #b00020;
@@ -99,6 +162,11 @@
       grid-column: 1 / -1;
       word-break: break-word;
     }
+
+    .error h2 {
+      margin-top: 0;
+    }
+
     footer {
       text-align: center;
       margin-top: 40px;
@@ -107,143 +175,461 @@
     }
   </style>
 </head>
+
 <body>
+
   <header>
+
     <h1>ARNO Streaming Team 💜</h1>
+
     <p class="subtitle">
       Support Arno's fancams! 🎬
     </p>
+
     <p class="updated" id="updated">
       Loading fancams...
     </p>
+
   </header>
+
+
   <main id="videos">
+
     <p class="loading">
       Loading fancams...
     </p>
+
   </main>
+
+
   <footer>
     Made with 💜 for ARNO Streaming Team
   </footer>
+
+
   <!-- SUPABASE -->
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script>
+
+    // ==========================================
+    // SUPABASE
+    // ==========================================
+
     const SUPABASE_URL =
       "https://bedxcpozjrduuhshrszh.supabase.co";
+
     const SUPABASE_PUBLISHABLE_KEY =
       "sb_publishable_dcDicY1qZyD0grDVw_cDwg_eHkt1MD8";
+
+
     const supabaseClient =
       window.supabase.createClient(
         SUPABASE_URL,
         SUPABASE_PUBLISHABLE_KEY
       );
+
+
     // ==========================================
     // FORMAT NUMBERS
     // ==========================================
+
     function formatNumber(value) {
-      if (value === null || value === undefined) {
+
+      if (
+        value === null ||
+        value === undefined ||
+        value === ""
+      ) {
         return "0";
       }
+
       return Number(value).toLocaleString();
+
     }
+
+
     // ==========================================
     // ESCAPE HTML
     // ==========================================
+
     function escapeHTML(text) {
+
       const div =
         document.createElement("div");
+
       div.textContent =
         text || "";
+
       return div.innerHTML;
+
     }
+
+
     // ==========================================
-    // LOAD FANCAMS
-    // LOWEST VIEWS → HIGHEST VIEWS
+    // LOAD EVERYTHING
     // ==========================================
+
     async function loadVideos() {
+
       const container =
         document.getElementById("videos");
+
       const updated =
         document.getElementById("updated");
+
+
       try {
-        const { data, error } =
+
+        // ========================================
+        // GET CURRENT FANCAMS
+        // ========================================
+
+        const {
+          data: videos,
+          error: videosError
+        } =
           await supabaseClient
             .from("videos")
             .select(
               "id, youtube_id, title, thumbnail, views, like, active, sort_order, updated_at"
             )
             .eq("active", true);
-        if (error) {
-          throw error;
+
+
+        if (videosError) {
+          throw videosError;
         }
-        container.innerHTML = "";
-        if (!data || data.length === 0) {
+
+
+        // ========================================
+        // NO VIDEOS
+        // ========================================
+
+        if (!videos || videos.length === 0) {
+
           container.innerHTML = `
             <p class="loading">
               No fancams found.
             </p>
           `;
+
           updated.textContent =
             "No fancams available.";
+
           return;
+
         }
-        // ==========================================
-        // SORT BY VIEWS
-        // LOWEST → HIGHEST
-        // ==========================================
-        data.sort(function(a, b) {
-          return Number(a.views || 0) -
-                 Number(b.views || 0);
+
+
+        // ========================================
+        // GET HISTORY
+        // ========================================
+
+        const videoIds =
+          videos.map(video => video.id);
+
+
+        const {
+          data: history,
+          error: historyError
+        } =
+          await supabaseClient
+            .from("Video_stats")
+            .select(
+              "id, video_id, views, like, record_at"
+            )
+            .in(
+              "video_id",
+              videoIds
+            )
+            .order(
+              "record_at",
+              {
+                ascending: true
+              }
+            );
+
+
+        if (historyError) {
+          throw historyError;
+        }
+
+
+        // ========================================
+        // SORT LOWEST VIEWS → HIGHEST VIEWS
+        // ========================================
+
+        videos.sort(function(a, b) {
+
+          return (
+            Number(a.views || 0) -
+            Number(b.views || 0)
+          );
+
         });
-        // ==========================================
-        // CREATE FANCAM CARDS
-        // ==========================================
-        data.forEach(function(video) {
+
+
+        container.innerHTML = "";
+
+
+        // ========================================
+        // CREATE EACH FANCAM
+        // ========================================
+
+        videos.forEach(function(video) {
+
           const youtubeId =
             video.youtube_id;
+
+
           const title =
             video.title ||
             "ARNO Fancam";
-          const views =
-            formatNumber(video.views);
-          const likes =
-            formatNumber(video.like);
-          // Use Supabase thumbnail if available.
-          // Otherwise use YouTube thumbnail.
+
+
+          const currentViews =
+            Number(video.views || 0);
+
+
+          const currentLikes =
+            Number(video.like || 0);
+
+
+          // ======================================
+          // FIND HISTORY FOR THIS VIDEO
+          // ======================================
+
+          const videoHistory =
+            (history || []).filter(function(item) {
+
+              return (
+                String(item.video_id) ===
+                String(video.id)
+              );
+
+            });
+
+
+          // ======================================
+          // FIRST SNAPSHOT
+          // ======================================
+
+          const firstSnapshot =
+            videoHistory.length > 0
+              ? videoHistory[0]
+              : null;
+
+
+          const firstViews =
+            firstSnapshot
+              ? Number(firstSnapshot.views || 0)
+              : currentViews;
+
+
+          const firstLikes =
+            firstSnapshot
+              ? Number(firstSnapshot.like || 0)
+              : currentLikes;
+
+
+          const viewsGained =
+            Math.max(
+              0,
+              currentViews - firstViews
+            );
+
+
+          const likesGained =
+            Math.max(
+              0,
+              currentLikes - firstLikes
+            );
+
+
+          // ======================================
+          // THUMBNAIL
+          // ======================================
+
           const thumbnail =
             video.thumbnail ||
             `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
+
+
+          // ======================================
+          // YOUTUBE URL
+          // ======================================
+
           const youtubeURL =
             `https://www.youtube.com/watch?v=${youtubeId}`;
+
+
+          // ======================================
+          // CREATE CARD
+          // ======================================
+
           const card =
             document.createElement("article");
+
+
           card.className =
             "video";
+
+
+          // ======================================
+          // HISTORY CHART
+          // ======================================
+
+          let chartHTML = "";
+
+
+          if (videoHistory.length > 0) {
+
+            const values =
+              videoHistory.map(function(item) {
+
+                return Number(
+                  item.views || 0
+                );
+
+              });
+
+
+            const maxValue =
+              Math.max(...values);
+
+
+            const minValue =
+              Math.min(...values);
+
+
+            const range =
+              maxValue - minValue;
+
+
+            chartHTML = `
+
+              <div class="chart">
+
+                ${values.map(function(value) {
+
+                  let height;
+
+                  if (range === 0) {
+
+                    height = 25;
+
+                  } else {
+
+                    height =
+                      15 +
+                      (
+                        (value - minValue) /
+                        range
+                      ) * 75;
+
+                  }
+
+                  return `
+
+                    <div
+                      class="bar"
+                      style="height:${height}%"
+                      title="${formatNumber(value)} views"
+                    ></div>
+
+                  `;
+
+                }).join("")}
+
+              </div>
+
+            `;
+
+          } else {
+
+            chartHTML = `
+
+              <div class="no-history">
+                No history recorded yet.
+              </div>
+
+            `;
+
+          }
+
+
+          // ======================================
+          // CARD HTML
+          // ======================================
+
           card.innerHTML = `
+
             <a
               href="${youtubeURL}"
               target="_blank"
               rel="noopener noreferrer"
             >
+
               <img
                 class="thumbnail"
                 src="${escapeHTML(thumbnail)}"
                 alt="${escapeHTML(title)}"
                 loading="lazy"
               >
+
             </a>
+
+
             <div class="video-content">
+
               <h2>
                 ${escapeHTML(title)}
               </h2>
+
+
               <div class="stats">
+
                 <div class="stat">
-                  👁️ ${views} views
+                  👁️ ${formatNumber(currentViews)} views
                 </div>
+
                 <div class="stat">
-                  ❤️ ${likes} likes
+                  ❤️ ${formatNumber(currentLikes)} likes
                 </div>
+
               </div>
+
+
+              <div class="progress-box">
+
+                <div class="progress-title">
+                  📊 Progress
+                </div>
+
+
+                <div class="gain">
+                  👁️ Views gained:
+                  <strong>
+                    +${formatNumber(viewsGained)}
+                  </strong>
+                </div>
+
+
+                <div class="gain">
+                  ❤️ Likes gained:
+                  <strong>
+                    +${formatNumber(likesGained)}
+                  </strong>
+                </div>
+
+
+                ${chartHTML}
+
+              </div>
+
+
               <a
                 class="watch-button"
                 href="${youtubeURL}"
@@ -252,49 +638,80 @@
               >
                 ▶ Watch Fancam
               </a>
+
             </div>
+
           `;
+
+
           container.appendChild(card);
+
         });
-        // ==========================================
+
+
+        // ========================================
         // UPDATED TIME
-        // ==========================================
+        // ========================================
+
         updated.textContent =
           "Last updated: " +
           new Date().toLocaleTimeString();
+
+
       } catch (error) {
+
         console.error(
           "Supabase error:",
           error
         );
+
+
         container.innerHTML = `
+
           <div class="error">
+
             <h2>
               Unable to load fancams
             </h2>
+
             <p>
               ${escapeHTML(
                 error.message ||
                 String(error)
               )}
             </p>
+
           </div>
+
         `;
+
+
         updated.textContent =
           "There was a problem loading the fancams.";
+
       }
+
     }
+
+
     // ==========================================
-    // LOAD WEBSITE
+    // FIRST LOAD
     // ==========================================
+
     loadVideos();
+
+
     // ==========================================
-    // REFRESH EVERY 60 SECONDS
+    // AUTO UPDATE EVERY 60 SECONDS
     // ==========================================
+
     setInterval(
       loadVideos,
       60000
     );
+
   </script>
+
 </body>
+
 </html>
