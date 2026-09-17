@@ -166,10 +166,6 @@
 
 <script>
 
-  /* ==============================
-     SUPABASE
-  ============================== */
-
   const SUPABASE_URL =
     "https://bedxcpozjrduuhshrszh.supabase.co";
 
@@ -254,7 +250,8 @@
 
   async function loadVideos() {
 
-    const container = document.getElementById("videos");
+    const container =
+      document.getElementById("videos");
 
     try {
 
@@ -295,7 +292,8 @@
 
       for (const stat of stats) {
 
-        const videoId = String(stat.video_id);
+        const videoId =
+          String(stat.video_id);
 
         if (!history[videoId]) {
           history[videoId] = [];
@@ -309,98 +307,128 @@
          PREPARE VIDEOS
       ============================== */
 
-      const preparedVideos = videos.map(video => {
+      const preparedVideos =
+        videos.map(video => {
 
-        const videoId = String(video.id);
+          const videoId =
+            String(video.id);
 
-        let videoHistory =
-          history[videoId] || [];
+          let videoHistory =
+            history[videoId] || [];
 
 
-        /* Sort history oldest → newest */
+          /* Oldest → newest */
 
-        videoHistory.sort((a, b) => {
+          videoHistory.sort((a, b) => {
 
-          return new Date(a.record_at).getTime()
-               - new Date(b.record_at).getTime();
+            return new Date(a.record_at).getTime()
+              - new Date(b.record_at).getTime();
+
+          });
+
+
+          /* Latest snapshot */
+
+          const latest =
+            videoHistory.length > 0
+              ? videoHistory[videoHistory.length - 1]
+              : null;
+
+
+          /* Current views */
+
+          const currentViews =
+            latest
+              ? numberValue(latest.views)
+              : numberValue(video.views);
+
+
+          /* Current likes */
+
+          const currentLikes =
+            latest
+              ? numberValue(latest.like)
+              : numberValue(video.like);
+
+
+          /* First snapshot */
+
+          const first =
+            videoHistory.length > 0
+              ? videoHistory[0]
+              : null;
+
+
+          const firstViews =
+            first
+              ? numberValue(first.views)
+              : currentViews;
+
+
+          const firstLikes =
+            first
+              ? numberValue(first.like)
+              : currentLikes;
+
+
+          /* Growth */
+
+          const viewsGained =
+            Math.max(
+              0,
+              currentViews - firstViews
+            );
+
+
+          const likesGained =
+            Math.max(
+              0,
+              currentLikes - firstLikes
+            );
+
+
+          return {
+
+            ...video,
+
+            currentViews,
+            currentLikes,
+
+            viewsGained,
+            likesGained,
+
+            history: videoHistory
+
+          };
 
         });
 
 
-        /* Latest snapshot */
-
-        const latest =
-          videoHistory.length > 0
-            ? videoHistory[videoHistory.length - 1]
-            : null;
-
-
-        /* Current numbers */
-
-        const currentViews =
-          latest
-            ? numberValue(latest.views)
-            : numberValue(video.views);
-
-
-        const currentLikes =
-          latest
-            ? numberValue(latest.like)
-            : numberValue(video.like);
-
-
-        /* First snapshot */
-
-        const first =
-          videoHistory.length > 0
-            ? videoHistory[0]
-            : null;
-
-
-        const firstViews =
-          first
-            ? numberValue(first.views)
-            : currentViews;
-
-
-        const firstLikes =
-          first
-            ? numberValue(first.like)
-            : currentLikes;
-
-
-        const viewsGained =
-          Math.max(0, currentViews - firstViews);
-
-
-        const likesGained =
-          Math.max(0, currentLikes - firstLikes);
-
-
-        return {
-
-          ...video,
-
-          currentViews,
-          currentLikes,
-
-          viewsGained,
-          likesGained,
-
-          history: videoHistory
-
-        };
-
-      });
-
-
       /* ==============================
+         IMPORTANT:
          LOWEST VIEWS → HIGHEST VIEWS
       ============================== */
 
       preparedVideos.sort((a, b) => {
 
-        return a.currentViews - b.currentViews;
+        const viewsA =
+          Number(a.currentViews) || 0;
+
+        const viewsB =
+          Number(b.currentViews) || 0;
+
+
+        if (viewsA !== viewsB) {
+
+          return viewsA - viewsB;
+
+        }
+
+
+        /* Stable order when views are equal */
+
+        return String(a.id)
+          .localeCompare(String(b.id));
 
       });
 
@@ -425,6 +453,10 @@
             `https://www.youtube.com/watch?v=${youtubeId}`;
 
 
+          /* ==============================
+             HISTORY CHART
+          ============================== */
+
           let chartHTML = "";
 
 
@@ -441,6 +473,7 @@
 
 
             chartHTML = `
+
               <div class="progress-title">
                 Views Progress
               </div>
@@ -455,25 +488,31 @@
                       (value / max) * 100
                     );
 
+
                   return `
+
                     <div
                       class="bar"
                       style="height:${height}%"
                       title="${formatNumber(value)} views">
                     </div>
+
                   `;
 
                 }).join("")}
 
               </div>
+
             `;
 
           } else {
 
             chartHTML = `
+
               <div class="no-history">
                 No history recorded yet.
               </div>
+
             `;
 
           }
@@ -489,8 +528,10 @@
                 loading="lazy"
               >
 
+
               <h2>
-                ${index + 1}. ${escapeHTML(video.title)}
+                ${index + 1}.
+                ${escapeHTML(video.title)}
               </h2>
 
 
@@ -523,6 +564,7 @@
               <div class="gain">
 
                 📈 Views gained:
+
                 <strong>
                   +${formatNumber(video.viewsGained)}
                 </strong>
@@ -533,6 +575,7 @@
               <div class="gain">
 
                 ❤️ Likes gained:
+
                 <strong>
                   +${formatNumber(video.likesGained)}
                 </strong>
@@ -559,10 +602,6 @@
         }).join("");
 
 
-      /* ==============================
-         UPDATED TIME
-      ============================== */
-
       document.getElementById("updated").textContent =
         `Last updated: ${new Date().toLocaleString()}`;
 
@@ -579,7 +618,7 @@
 
           <br><br>
 
-          Please check the Supabase tables and RLS policies.
+          Please check your Supabase tables and RLS policies.
 
         </div>
 
@@ -591,7 +630,7 @@
 
 
   /* ==============================
-     FIRST LOAD
+     LOAD
   ============================== */
 
   loadVideos();
