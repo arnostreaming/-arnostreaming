@@ -249,27 +249,25 @@
 
 
     /*
-      Get the latest two historical
-      records for one video.
+      Load all historical statistics once.
+      Then we find the latest two records
+      for every video.
     */
 
-    async function getVideoHistory(videoId) {
+    async function getAllHistory() {
 
       const { data, error } =
         await supabaseClient
           .from("video_stats")
           .select(
-            "views,likes,recorded_at"
+            "video_id,views,likes,recorded_at"
           )
-          .eq("video_id", videoId)
           .order(
             "recorded_at",
             {
               ascending: false
             }
-          )
-          .limit(2);
-
+          );
 
       if (error) {
 
@@ -278,11 +276,49 @@
           error
         );
 
-        return [];
+        throw error;
       }
 
-
       return data || [];
+    }
+
+
+    /*
+      Create a history map.
+
+      For each video:
+      [0] = newest record
+      [1] = previous record
+    */
+
+    function buildHistoryMap(historyRows) {
+
+      const historyMap = {};
+
+
+      historyRows.forEach(row => {
+
+        const videoId =
+          String(row.video_id);
+
+
+        if (!historyMap[videoId]) {
+
+          historyMap[videoId] = [];
+
+        }
+
+
+        if (historyMap[videoId].length < 2) {
+
+          historyMap[videoId].push(row);
+
+        }
+
+      });
+
+
+      return historyMap;
     }
 
 
@@ -294,7 +330,11 @@
 
       try {
 
-        const result =
+        /*
+          Get current videos.
+        */
+
+        const videosResult =
           await supabaseClient
             .from("videos")
             .select(
@@ -303,14 +343,32 @@
             .eq("active", true);
 
 
-        if (result.error) {
-          throw result.error;
+        if (videosResult.error) {
+
+          throw videosResult.error;
+
         }
 
 
         const data =
-          result.data || [];
+          videosResult.data || [];
 
+
+        /*
+          Get historical data.
+        */
+
+        const historyRows =
+          await getAllHistory();
+
+
+        const historyMap =
+          buildHistoryMap(historyRows);
+
+
+        /*
+          Sort videos by views.
+        */
 
         data.sort((a, b) => {
 
@@ -332,8 +390,13 @@
           `;
 
           return;
+
         }
 
+
+        /*
+          Find highest views.
+        */
 
         const highestViews =
           Math.max(
@@ -344,195 +407,210 @@
 
 
         /*
-          Load history for every video.
+          Create cards.
         */
 
-        const histories =
-          await Promise.all(
-            data.map(video =>
-              getVideoHistory(video.id)
-            )
-          );
+        data.forEach(video => {
+
+          const youtubeId =
+            video.youtube_id || "";
 
 
-        data.forEach(
-          (video, index) => {
-
-            const youtubeId =
-              video.youtube_id || "";
+          const title =
+            video.title ||
+            "ARNO Fancam";
 
 
-            const title =
-              video.title ||
-              "ARNO Fancam";
+          const views =
+            getNumber(video.views);
 
 
-            const views =
-              getNumber(video.views);
+          const likes =
+            getNumber(video.likes);
 
 
-            const likes =
-              getNumber(video.likes);
+          const thumbnail =
+            video.thumbnail ||
+            `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
 
 
-            const thumbnail =
-              video.thumbnail ||
-              `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
+          const youtubeURL =
+            `https://www.youtube.com/watch?v=${youtubeId}`;
 
 
-            const youtubeURL =
-              `https://www.youtube.com/watch?v=${youtubeId}`;
+          /*
+            Get this video's two latest
+            historical records.
+          */
+
+          const history =
+            historyMap[String(video.id)] || [];
 
 
-            const history =
-              histories[index];
+          let viewsGained = 0;
 
 
-            /*
-              history[0] = newest
-              history[1] = previous
-            */
+          if (history.length >= 2) {
 
-            let viewsGained = 0;
+            const newestViews =
+              getNumber(history[0].views);
 
 
-            if (history.length >= 2) {
-
-              viewsGained =
-                getNumber(history[0].views) -
-                getNumber(history[1].views);
-
-            }
+            const previousViews =
+              getNumber(history[1].views);
 
 
-            let progress = 0;
+            viewsGained =
+              newestViews -
+              previousViews;
+
+          }
 
 
-            if (highestViews > 0) {
+          /*
+            Never show a negative gain.
+          */
 
-              progress =
-                (views / highestViews) * 100;
-
-            }
-
-
-            const lastUpdate =
-              video.updated_at ||
-              (
-                history.length > 0
-                  ? history[0].recorded_at
-                  : null
-              );
+          viewsGained =
+            Math.max(0, viewsGained);
 
 
-            const card =
-              document.createElement(
-                "article"
-              );
+          /*
+            Progress compared with the
+            highest-view fancam.
+          */
+
+          let progress = 0;
 
 
-            card.className =
-              "video";
+          if (highestViews > 0) {
+
+            progress =
+              (views / highestViews) * 100;
+
+          }
 
 
-            card.innerHTML = `
+          /*
+            Last update time.
+          */
+
+          const lastUpdate =
+            video.updated_at ||
+            (
+              history.length > 0
+                ? history[0].recorded_at
+                : null
+            );
+
+
+          /*
+            Create card.
+          */
+
+          const card =
+            document.createElement("article");
+
+
+          card.className =
+            "video";
+
+
+          card.innerHTML = `
+
+            <a
+              href="${youtubeURL}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+
+              <img
+                class="thumbnail"
+                src="${thumbnail}"
+                alt="${escapeHTML(title)}"
+                loading="lazy"
+              >
+
+            </a>
+
+
+            <div class="video-content">
+
+              <h2>
+                ${escapeHTML(title)}
+              </h2>
+
+
+              <div class="stats">
+
+                <div>
+                  👁️
+                  <strong>
+                    ${formatNumber(views)}
+                  </strong>
+                  Views
+                </div>
+
+
+                <div>
+                  📈
+                  <span class="gain">
+                    +${formatNumber(viewsGained)}
+                  </span>
+                  since last update
+                </div>
+
+
+                <div>
+                  ❤️
+                  <strong>
+                    ${formatNumber(likes)}
+                  </strong>
+                  Likes
+                </div>
+
+
+                <div class="update-time">
+                  🕐 Last updated:
+                  ${formatDate(lastUpdate)}
+                </div>
+
+
+                <div class="progress-text">
+                  📊 Progress:
+                  ${progress.toFixed(1)}%
+                </div>
+
+
+                <div class="progress-bar">
+
+                  <div
+                    class="progress-fill"
+                    style="width: ${progress}%"
+                  ></div>
+
+                </div>
+
+              </div>
+
 
               <a
+                class="watch-button"
                 href="${youtubeURL}"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-
-                <img
-                  class="thumbnail"
-                  src="${thumbnail}"
-                  alt="${escapeHTML(title)}"
-                  loading="lazy"
-                >
-
+                ▶ Watch Fancam
               </a>
 
+            </div>
 
-              <div class="video-content">
-
-                <h2>
-                  ${escapeHTML(title)}
-                </h2>
+          `;
 
 
-                <div class="stats">
+          container.appendChild(card);
 
-                  <div>
-                    👁️
-                    <strong>
-                      ${formatNumber(views)}
-                    </strong>
-                    Views
-                  </div>
-
-
-                  <div>
-                    📈
-                    <span class="gain">
-                      +${formatNumber(
-                        Math.max(0, viewsGained)
-                      )}
-                    </span>
-                    since last update
-                  </div>
-
-
-                  <div>
-                    ❤️
-                    <strong>
-                      ${formatNumber(likes)}
-                    </strong>
-                    Likes
-                  </div>
-
-
-                  <div class="update-time">
-                    🕐 Last updated:
-                    ${formatDate(lastUpdate)}
-                  </div>
-
-
-                  <div class="progress-text">
-                    📊 Progress:
-                    ${progress.toFixed(1)}%
-                  </div>
-
-
-                  <div class="progress-bar">
-
-                    <div
-                      class="progress-fill"
-                      style="width: ${progress}%"
-                    ></div>
-
-                  </div>
-
-                </div>
-
-
-                <a
-                  class="watch-button"
-                  href="${youtubeURL}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  ▶ Watch Fancam
-                </a>
-
-              </div>
-
-            `;
-
-
-            container.appendChild(card);
-
-          }
-        );
+        });
 
 
       } catch (error) {
