@@ -86,6 +86,16 @@
       color: #6b35b5;
     }
 
+    .gain {
+      color: #159447;
+      font-weight: bold;
+    }
+
+    .no-history {
+      color: #999;
+      font-size: 13px;
+    }
+
     .progress-text {
       font-size: 13px;
       color: #777;
@@ -237,6 +247,40 @@
     }
 
 
+    async function getPreviousStats(videoId) {
+
+      const { data, error } =
+        await supabaseClient
+          .from("video_stats")
+          .select("views, likes, recorded_at")
+          .eq("video_id", videoId)
+          .order("recorded_at", {
+            ascending: false
+          })
+          .limit(2);
+
+
+      if (error) {
+
+        console.error(
+          "Stats error:",
+          error
+        );
+
+        return null;
+      }
+
+
+      if (!data || data.length < 2) {
+
+        return null;
+      }
+
+
+      return data[1];
+    }
+
+
     async function loadVideos() {
 
       const container =
@@ -262,10 +306,6 @@
           result.data || [];
 
 
-        /*
-          LOWEST VIEWS → HIGHEST VIEWS
-        */
-
         data.sort((a, b) => {
 
           return getNumber(a.views) -
@@ -289,11 +329,6 @@
         }
 
 
-        /*
-          Find the highest number of views
-          for the progress bar.
-        */
-
         const highestViews =
           Math.max(
             ...data.map(video =>
@@ -302,7 +337,19 @@
           );
 
 
-        data.forEach(video => {
+        /*
+          Get the previous stats for every video.
+        */
+
+        const previousStats =
+          await Promise.all(
+            data.map(video =>
+              getPreviousStats(video.id)
+            )
+          );
+
+
+        data.forEach((video, index) => {
 
           const youtubeId =
             video.youtube_id || "";
@@ -328,6 +375,27 @@
 
           const youtubeURL =
             `https://www.youtube.com/watch?v=${youtubeId}`;
+
+
+          /*
+            Calculate views gained
+            since the previous snapshot.
+          */
+
+          const previous =
+            previousStats[index];
+
+
+          let viewsGained = null;
+
+
+          if (previous) {
+
+            viewsGained =
+              views -
+              getNumber(previous.views);
+
+          }
 
 
           let progress = 0;
@@ -392,6 +460,25 @@
                   </strong>
                   Likes
                 </div>
+
+
+                ${
+                  viewsGained !== null
+                    ? `
+                      <div class="gain">
+                        📈
+                        +${formatNumber(
+                          Math.max(0, viewsGained)
+                        )}
+                        views since last update
+                      </div>
+                    `
+                    : `
+                      <div class="no-history">
+                        📊 Waiting for another update...
+                      </div>
+                    `
+                }
 
 
                 <div class="progress-text">
@@ -463,15 +550,11 @@
     }
 
 
-    /*
-      Load immediately.
-    */
-
     loadVideos();
 
 
     /*
-      Update every 60 seconds.
+      Refresh every 60 seconds.
     */
 
     setInterval(
