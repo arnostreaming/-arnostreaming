@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>ARNO Streaming Team</title>
+  <title>ARNO YouTube Stats</title>
 
   <style>
     * {
@@ -14,173 +14,330 @@
 
     body {
       margin: 0;
-      padding: 20px;
-      font-family: Arial, sans-serif;
-      background: #f5f0ff;
-      color: #222;
+      padding: 28px 24px 50px;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #faf8ff;
+      color: #17132d;
     }
 
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* HEADER */
+
     header {
-      text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 24px;
     }
 
     h1 {
-      color: #6b35b5;
-      font-size: 32px;
-      margin-bottom: 8px;
+      margin: 0 0 18px;
+      font-size: 42px;
+      line-height: 1;
+      font-weight: 800;
+      color: #6126b5;
     }
 
-    .subtitle {
-      color: #666;
-      font-size: 16px;
+    .intro {
+      margin: 0;
+      padding-left: 22px;
+      color: #68617d;
+      font-size: 15px;
+      line-height: 1.9;
     }
+
+    .intro li::marker {
+      color: #7839d8;
+    }
+
+    .top-line {
+      height: 3px;
+      background: #7135c7;
+      margin: 24px 0 0;
+      border-radius: 5px;
+    }
+
+    /* VIDEO LIST */
 
     #videos {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-      max-width: 1100px;
-      margin: auto;
+      width: 100%;
     }
 
-    .video {
-      background: white;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.10);
+    .video-row {
+      position: relative;
+      display: grid;
+      grid-template-columns: 135px minmax(0, 1fr) 58px;
+      column-gap: 20px;
+      align-items: center;
+      padding: 26px 0 22px;
+      border-bottom: 2px solid #ddd8e9;
+    }
+
+    .thumbnail-link {
+      display: block;
     }
 
     .thumbnail {
-      width: 100%;
-      display: block;
-      aspect-ratio: 16 / 9;
+      width: 135px;
+      height: 90px;
       object-fit: cover;
-      background: #ddd;
-    }
-
-    .video-content {
-      padding: 18px;
-    }
-
-    .video h2 {
-      color: #333;
-      font-size: 19px;
-      margin: 0 0 15px;
-    }
-
-    .stats {
-      margin: 12px 0;
-      padding: 12px;
-      background: #f7f3ff;
-      border-radius: 10px;
-      font-size: 14px;
-      line-height: 1.8;
-    }
-
-    .stats div {
       display: block;
+      border-radius: 2px;
+      background: #e5e1ed;
     }
 
-    .stats strong {
-      color: #6b35b5;
+    .video-info {
+      min-width: 0;
+    }
+
+    .video-title {
+      margin: 0 0 14px;
+      color: #17132d;
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 700;
+    }
+
+    .stats-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px;
+      font-size: 16px;
+    }
+
+    .views-number,
+    .likes-number {
+      color: #17132d;
+      font-weight: 700;
+    }
+
+    .views-label,
+    .likes-label {
+      color: #77718a;
     }
 
     .gain {
-      color: #159447;
-      font-weight: bold;
+      color: #6731d0;
+      font-weight: 700;
+      margin-left: 2px;
     }
 
-    .update-time {
-      color: #777;
-      font-size: 12px;
+    /* ARROW */
+
+    .expand-button {
+      width: 52px;
+      height: 52px;
+      border: 1.5px solid #b18be8;
+      border-radius: 50%;
+      background: transparent;
+      color: #7035cf;
+      font-size: 27px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.2s;
     }
 
-    .progress-text {
-      font-size: 13px;
-      color: #777;
-      margin-top: 8px;
+    .expand-button:hover {
+      background: #f0e7ff;
+    }
+
+    .expand-button.open {
+      transform: rotate(180deg);
+    }
+
+    /* PROGRESS */
+
+    .progress-wrapper {
+      grid-column: 1 / -1;
+      margin-top: 20px;
     }
 
     .progress-bar {
       width: 100%;
-      height: 8px;
-      background: #e5e5e5;
-      border-radius: 20px;
+      height: 3px;
+      background: #ded8eb;
       overflow: hidden;
-      margin-top: 5px;
+      border-radius: 5px;
     }
 
     .progress-fill {
       height: 100%;
-      background: #6b35b5;
-      border-radius: 20px;
+      background: #7135c7;
+      border-radius: 5px;
+      transition: width 0.4s ease;
+    }
+
+    /* DETAILS */
+
+    .details {
+      grid-column: 1 / -1;
+      display: none;
+      padding: 18px 0 4px 155px;
+    }
+
+    .details.open {
+      display: block;
     }
 
     .watch-button {
       display: inline-block;
-      background: #6b35b5;
+      background: #7135c7;
       color: white;
-      padding: 11px 18px;
-      border-radius: 9px;
-      font-weight: bold;
       text-decoration: none;
-      margin-top: 8px;
+      padding: 11px 20px;
+      border-radius: 7px;
+      font-size: 14px;
+      font-weight: 700;
     }
 
     .watch-button:hover {
-      opacity: 0.85;
+      background: #5e28ad;
     }
+
+    .detail-text {
+      color: #77718a;
+      font-size: 13px;
+      margin-left: 12px;
+    }
+
+    /* LOADING / ERROR */
 
     .loading {
       text-align: center;
-      color: #777;
-      grid-column: 1 / -1;
+      color: #77718a;
+      padding: 50px 0;
     }
 
     .error {
       background: white;
-      color: #b00020;
+      color: #a00020;
       padding: 20px;
-      border-radius: 12px;
-      text-align: center;
-      grid-column: 1 / -1;
+      border-radius: 10px;
+      margin-top: 25px;
     }
+
+    /* FOOTER */
 
     footer {
       text-align: center;
-      margin-top: 40px;
-      color: #888;
+      margin-top: 45px;
+      color: #9993a8;
       font-size: 13px;
+    }
+
+    /* MOBILE */
+
+    @media (max-width: 650px) {
+
+      body {
+        padding: 22px 16px 40px;
+      }
+
+      h1 {
+        font-size: 34px;
+      }
+
+      .intro {
+        font-size: 13px;
+        line-height: 1.7;
+      }
+
+      .video-row {
+        grid-template-columns: 100px minmax(0, 1fr) 44px;
+        column-gap: 12px;
+        padding: 20px 0 18px;
+      }
+
+      .thumbnail {
+        width: 100px;
+        height: 67px;
+      }
+
+      .video-title {
+        font-size: 15px;
+        margin-bottom: 9px;
+      }
+
+      .stats-line {
+        font-size: 13px;
+        gap: 5px;
+      }
+
+      .expand-button {
+        width: 42px;
+        height: 42px;
+        font-size: 22px;
+      }
+
+      .progress-wrapper {
+        margin-top: 15px;
+      }
+
+      .details {
+        padding: 15px 0 2px 112px;
+      }
+
+      .watch-button {
+        padding: 9px 14px;
+        font-size: 13px;
+      }
+
+      .detail-text {
+        display: block;
+        margin: 8px 0 0;
+      }
     }
   </style>
 </head>
 
 <body>
 
-  <header>
-    <h1>ARNO Streaming Team 💜</h1>
+  <div class="page">
 
-    <p class="subtitle">
-      Support Arno's fancams! 🎬
-    </p>
-  </header>
+    <header>
 
-  <main id="videos">
+      <h1>YouTube Stats.</h1>
 
-    <p class="loading">
-      Loading fancams...
-    </p>
+      <ul class="intro">
+        <li>Current views and likes are updated hourly via YouTube Data API.</li>
+        <li>The purple number shows views gained since the previous update.</li>
+        <li>Tap the arrow to open the fancam and watch it on YouTube.</li>
+      </ul>
 
-  </main>
+      <div class="top-line"></div>
 
-  <footer>
-    Made with 💜 for ARNO Streaming Team
-  </footer>
+    </header>
+
+
+    <main id="videos">
+
+      <p class="loading">
+        Loading fancams...
+      </p>
+
+    </main>
+
+
+    <footer>
+      Made with 💜 for ARNO Streaming Team
+    </footer>
+
+  </div>
+
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+
   <script>
+
+    /* =========================
+       SUPABASE
+    ========================= */
 
     const SUPABASE_URL =
       "https://bedxcpozjrduuhshrszh.supabase.co";
@@ -195,27 +352,23 @@
       );
 
 
-    function formatNumber(value) {
-
-      const number = Number(value);
-
-      if (Number.isNaN(number)) {
-        return "0";
-      }
-
-      return number.toLocaleString();
-    }
-
+    /* =========================
+       HELPERS
+    ========================= */
 
     function getNumber(value) {
 
       const number = Number(value);
 
-      if (Number.isNaN(number)) {
-        return 0;
-      }
+      return Number.isNaN(number)
+        ? 0
+        : number;
+    }
 
-      return number;
+
+    function formatNumber(value) {
+
+      return getNumber(value).toLocaleString();
     }
 
 
@@ -231,28 +384,9 @@
     }
 
 
-    function formatDate(dateString) {
-
-      if (!dateString) {
-        return "Unknown";
-      }
-
-      const date =
-        new Date(dateString);
-
-      if (Number.isNaN(date.getTime())) {
-        return "Unknown";
-      }
-
-      return date.toLocaleString();
-    }
-
-
-    /*
-      Load all historical statistics once.
-      Then we find the latest two records
-      for every video.
-    */
+    /* =========================
+       GET HISTORY
+    ========================= */
 
     async function getAllHistory() {
 
@@ -270,12 +404,6 @@
           );
 
       if (error) {
-
-        console.error(
-          "History error:",
-          error
-        );
-
         throw error;
       }
 
@@ -283,56 +411,51 @@
     }
 
 
-    /*
-      Create a history map.
+    /* =========================
+       BUILD HISTORY
+    ========================= */
 
-      For each video:
-      [0] = newest record
-      [1] = previous record
-    */
+    function buildHistoryMap(rows) {
 
-    function buildHistoryMap(historyRows) {
+      const map = {};
 
-      const historyMap = {};
+      rows.forEach(row => {
 
-
-      historyRows.forEach(row => {
-
-        const videoId =
+        const id =
           String(row.video_id);
 
-
-        if (!historyMap[videoId]) {
-
-          historyMap[videoId] = [];
-
+        if (!map[id]) {
+          map[id] = [];
         }
 
+        /*
+          Because the data is already
+          newest → oldest, the first
+          two records are what we need.
+        */
 
-        if (historyMap[videoId].length < 2) {
-
-          historyMap[videoId].push(row);
-
+        if (map[id].length < 2) {
+          map[id].push(row);
         }
 
       });
 
-
-      return historyMap;
+      return map;
     }
 
+
+    /* =========================
+       LOAD VIDEOS
+    ========================= */
 
     async function loadVideos() {
 
       const container =
         document.getElementById("videos");
 
-
       try {
 
-        /*
-          Get current videos.
-        */
+        /* Get current YouTube data */
 
         const videosResult =
           await supabaseClient
@@ -344,19 +467,15 @@
 
 
         if (videosResult.error) {
-
           throw videosResult.error;
-
         }
 
 
-        const data =
+        const videos =
           videosResult.data || [];
 
 
-        /*
-          Get historical data.
-        */
+        /* Get historical data */
 
         const historyRows =
           await getAllHistory();
@@ -366,14 +485,12 @@
           buildHistoryMap(historyRows);
 
 
-        /*
-          Sort videos by views.
-        */
+        /* Sort by views */
 
-        data.sort((a, b) => {
+        videos.sort((a, b) => {
 
-          return getNumber(a.views) -
-                 getNumber(b.views);
+          return getNumber(b.views) -
+                 getNumber(a.views);
 
         });
 
@@ -381,7 +498,7 @@
         container.innerHTML = "";
 
 
-        if (data.length === 0) {
+        if (videos.length === 0) {
 
           container.innerHTML = `
             <p class="loading">
@@ -390,98 +507,81 @@
           `;
 
           return;
-
         }
 
 
-        /*
-          Find highest views.
-        */
+        /* Highest views */
 
         const highestViews =
           Math.max(
-            ...data.map(video =>
+            ...videos.map(video =>
               getNumber(video.views)
             )
           );
 
 
-        /*
-          Create cards.
-        */
+        /* Create each row */
 
-        data.forEach(video => {
+        videos.forEach(video => {
+
+          const videoId =
+            String(video.id);
 
           const youtubeId =
             video.youtube_id || "";
-
 
           const title =
             video.title ||
             "ARNO Fancam";
 
-
           const views =
             getNumber(video.views);
 
-
           const likes =
             getNumber(video.likes);
-
 
           const thumbnail =
             video.thumbnail ||
             `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
 
-
           const youtubeURL =
             `https://www.youtube.com/watch?v=${youtubeId}`;
 
 
-          /*
-            Get this video's two latest
-            historical records.
-          */
+          /* Get latest 2 records */
 
           const history =
-            historyMap[String(video.id)] || [];
+            historyMap[videoId] || [];
 
 
-          let viewsGained = 0;
+          let gained = 0;
 
 
           if (history.length >= 2) {
 
-            const newestViews =
+            const newest =
               getNumber(history[0].views);
 
-
-            const previousViews =
+            const previous =
               getNumber(history[1].views);
 
-
-            viewsGained =
-              newestViews -
-              previousViews;
+            gained =
+              newest - previous;
 
           }
 
 
           /*
-            Never show a negative gain.
+            Don't show negative numbers.
           */
 
-          viewsGained =
-            Math.max(0, viewsGained);
+          gained =
+            Math.max(0, gained);
 
 
-          /*
-            Progress compared with the
-            highest-view fancam.
-          */
+          /* Progress */
 
           let progress = 0;
-
 
           if (highestViews > 0) {
 
@@ -491,34 +591,19 @@
           }
 
 
-          /*
-            Last update time.
-          */
+          /* Create row */
 
-          const lastUpdate =
-            video.updated_at ||
-            (
-              history.length > 0
-                ? history[0].recorded_at
-                : null
-            );
-
-
-          /*
-            Create card.
-          */
-
-          const card =
+          const row =
             document.createElement("article");
 
+          row.className =
+            "video-row";
 
-          card.className =
-            "video";
 
-
-          card.innerHTML = `
+          row.innerHTML = `
 
             <a
+              class="thumbnail-link"
               href="${youtubeURL}"
               target="_blank"
               rel="noopener noreferrer"
@@ -534,65 +619,64 @@
             </a>
 
 
-            <div class="video-content">
+            <div class="video-info">
 
-              <h2>
+              <h2 class="video-title">
                 ${escapeHTML(title)}
               </h2>
 
 
-              <div class="stats">
+              <div class="stats-line">
 
-                <div>
-                  👁️
-                  <strong>
-                    ${formatNumber(views)}
-                  </strong>
-                  Views
-                </div>
+                <span class="views-number">
+                  ${formatNumber(views)}
+                </span>
 
+                <span class="gain">
+                  (+${formatNumber(gained)})
+                </span>
 
-                <div>
-                  📈
-                  <span class="gain">
-                    +${formatNumber(viewsGained)}
-                  </span>
-                  since last update
-                </div>
+                <span class="views-label">
+                  views
+                </span>
 
+                <span class="likes-number">
+                  ${formatNumber(likes)}
+                </span>
 
-                <div>
-                  ❤️
-                  <strong>
-                    ${formatNumber(likes)}
-                  </strong>
-                  Likes
-                </div>
-
-
-                <div class="update-time">
-                  🕐 Last updated:
-                  ${formatDate(lastUpdate)}
-                </div>
-
-
-                <div class="progress-text">
-                  📊 Progress:
-                  ${progress.toFixed(1)}%
-                </div>
-
-
-                <div class="progress-bar">
-
-                  <div
-                    class="progress-fill"
-                    style="width: ${progress}%"
-                  ></div>
-
-                </div>
+                <span class="likes-label">
+                  likes
+                </span>
 
               </div>
 
+            </div>
+
+
+            <button
+              class="expand-button"
+              aria-label="Show fancam"
+              type="button"
+            >
+              ⌄
+            </button>
+
+
+            <div class="progress-wrapper">
+
+              <div class="progress-bar">
+
+                <div
+                  class="progress-fill"
+                  style="width: ${progress}%"
+                ></div>
+
+              </div>
+
+            </div>
+
+
+            <div class="details">
 
               <a
                 class="watch-button"
@@ -603,12 +687,60 @@
                 ▶ Watch Fancam
               </a>
 
+              <span class="detail-text">
+                Updated from YouTube
+              </span>
+
             </div>
 
           `;
 
 
-          container.appendChild(card);
+          /* Arrow button */
+
+          const button =
+            row.querySelector(
+              ".expand-button"
+            );
+
+          const details =
+            row.querySelector(
+              ".details"
+            );
+
+
+          button.addEventListener(
+            "click",
+            () => {
+
+              const isOpen =
+                details.classList.contains(
+                  "open"
+                );
+
+
+              details.classList.toggle(
+                "open"
+              );
+
+
+              button.classList.toggle(
+                "open"
+              );
+
+
+              button.setAttribute(
+                "aria-label",
+                isOpen
+                  ? "Show fancam"
+                  : "Hide fancam"
+              );
+
+            }
+          );
+
+
+          container.appendChild(row);
 
         });
 
@@ -616,7 +748,7 @@
       } catch (error) {
 
         console.error(
-          "Supabase error:",
+          "Website error:",
           error
         );
 
@@ -645,15 +777,17 @@
     }
 
 
-    /*
-      Load immediately.
-    */
+    /* =========================
+       START
+    ========================= */
 
     loadVideos();
 
 
     /*
-      Refresh every 60 seconds.
+      Refresh every minute.
+      The actual YouTube data is
+      updated hourly by Supabase.
     */
 
     setInterval(
